@@ -16,6 +16,7 @@
 "/"   			{ return DIVIDE; }
 "%"   			{ return MOD; }
 ":="			{ return ASSIGN; }
+":"			{ return COLON; }
 
 "="				{ return EQUAL; }
 "!="			{ return NOTEQUAL; }
@@ -27,6 +28,8 @@
 "("				{ return LEFTBRACKET; }
 ")"				{ return RIGHTBRACKET; }
 
+"DECLARE" { return DECLARE; }
+"IN"      { return IN; }
 "FOR"			{ return FOR; }
 "FROM"			{ return FROM; }
 "TO"			{ return TO; }
