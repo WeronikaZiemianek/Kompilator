@@ -206,7 +206,7 @@ command:
 		}
 |   FOR PIDENTIFIER {
         if(identifierStack.find($2)!=identifierStack.end()) {
-            cout << "Błąd liniia " << yylineno << " - Kolejna deklaracja zmiennej " << $<str>2 << endl;
+            cout << "Błąd liniia: " << yylineno << " - Kolejna deklaracja zmiennej " << $<str>2 << endl;
             exit(1);
         }
         else {
@@ -630,7 +630,6 @@ expression:
 
             addInt(stackJ, codeStack.size());
 
-            /*memToRegister(5);*/
             stackJ = codeStack.size();
             pushCommandOneArg("JZERO", codeStack.size()+13);
             pushCommandOneArg("JODD", codeStack.size()+2);
@@ -1866,3 +1865,4 @@ int yyerror(string str){
 	/*return 1;*/
     exit(1);
 }
+
