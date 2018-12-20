@@ -53,8 +53,7 @@
 
 [_a-z]+			{ yylval.str = (char *)strdup(yytext); return PIDENTIFIER; }
 "["             	{ BEGIN(COMMENT);       }
-<COMMENT>(\n|.)
-<COMMENT>"]"  		{ BEGIN(INITIAL);   }
+<COMMENT>(\n|.)"]"  		{ BEGIN(INITIAL);   }
 <COMMENT><<EOF>>    { printf("BŁĄD: komentarz nie został zakończony\n"); yyterminate(); }
 
 

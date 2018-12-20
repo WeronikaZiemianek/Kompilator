@@ -18,6 +18,10 @@
   extern int yylineno;
   int yyerror(const string str);
 
+  vector<string> asmStack;
+
+  void printAsmStack();
+
 %}
 
 %union {
@@ -39,19 +43,20 @@
 
 program:
     DECLARE declarations IN commands END {
-        printf("HALT\n");
+        asmStack.push_back("HALT");
+        printAsmStack();
     }
 ;
 
 declarations:
 declarations PIDENTIFIER SEMICOLON {}
-|   declarations PIDENTIFIER LEFTBRACKET NUM COLON NUM RIGHTBRACKET SEMICOLON {}
+| declarations PIDENTIFIER LEFTBRACKET NUM COLON NUM RIGHTBRACKET SEMICOLON {}
 |
 ;
 
 commands:
-    commands command
-|   command
+commands command
+| command
 ;
 
 command:
@@ -104,7 +109,12 @@ int main(int argv, char* argc[]){
 }
 
 int yyerror(string str){
-    cout << "Błąd [okolice linii " << yylineno << \
-    "]: " << str << endl;
+    cout << "Błąd: linia " << yylineno << str << "\n";
     exit(1);
+}
+
+void printAsmStack() {
+	long long int i;
+	for(i = 0; i < asmStack.size(); i++)
+        cout << asmStack.at(i) << "\n";
 }

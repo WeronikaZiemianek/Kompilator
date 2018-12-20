@@ -1,0 +1,8 @@
+[ Komentarz 1 ]
+DECLARE 
+[ Komentarz 
+2 ]
+IN
+[ Komentarz 3 ]
+END
+[Komentarz 4 ]
