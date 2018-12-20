@@ -1,0 +1,7 @@
+DECLARE
+a;
+a;
+b;
+tab(10:100);
+IN
+END

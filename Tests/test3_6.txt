@@ -1,0 +1,6 @@
+DECLARE
+a;
+b;
+tab(0:0);
+IN
+END
