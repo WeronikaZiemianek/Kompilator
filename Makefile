@@ -1,4 +1,4 @@
-make:
-	bison -d bizon.y -o bizon.c
-	flex -o flex.c flex.l
-	gcc flex.c bizon.c -lm -lfl -o out -std=c99 -D_BSD_SOURCE
+make: bizon.y flex.l
+	bison -d bizon.y
+	flex flex.l
+	g++ -std=c++11 -o compiler lex.yy.c bizon.tab.c -lfl

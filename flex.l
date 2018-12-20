@@ -1,50 +1,52 @@
 %option noyywrap
 %option yylineno
 %{
-    // includy z C
-	
-    extern void yyerror(const char*);
+    #include <stdlib.h>
+    #include <string.h>
+    #include "bizon.tab.h"
 %}
 
 %x COMMENT
 
 %%
-[0-9]+ 		{ yylval.str = (char *)strdup(yytext); return NUM;}
+[0-9]+ 			{ yylval.str = (char *)strdup(yytext); return NUM;}
 
-"+"				{ return ADD; }
+"+"					{ return ADD; }
 "-"   			{ return SUBSTRACT; }
-"*" 			{ return MULTIPLY; }
+"*" 				{ return MULTIPLY; }
 "/"   			{ return DIVIDE; }
 "%"   			{ return MOD; }
-":="			{ return ASSIGN; }
-":"			{ return COLON; }
 
-"="				{ return EQUAL; }
-"!="			{ return NOTEQUAL; }
-"<"				{ return LEFTINEQUAL; }
-">"				{ return RIGHTINEQUAL; }
-"<="			{ return LEFTINEQUALEQUAL; }
-">="			{ return RIGHTINEQUALEQUAL; }
+":="				{ return ASSIGN; }
+":"					{ return COLON; }
 
-"("				{ return LEFTBRACKET; }
-")"				{ return RIGHTBRACKET; }
+"="					{ return EQUAL; }
+"!="				{ return NOTEQUAL; }
+"<"					{ return LEFTINEQUAL; }
+">"					{ return RIGHTINEQUAL; }
+"<="				{ return LEFTINEQUALEQUAL; }
+">="				{ return RIGHTINEQUALEQUAL; }
 
-"DECLARE" { return DECLARE; }
-"IN"      { return IN; }
-"FOR"			{ return FOR; }
+"("					{ return LEFTBRACKET; }
+")"					{ return RIGHTBRACKET; }
+
+"DECLARE" 	{ return DECLARE; }
+"IN"     		{ return IN; }
+"END"				{ return END; }
+"FOR"				{ return FOR; }
 "FROM"			{ return FROM; }
-"TO"			{ return TO; }
+"TO"				{ return TO; }
 "DOWNTO"		{ return DOWNTO; }
-"IF"			{ return IF; }
+"ENDFOR"		{ return ENDFOR; }
+"IF"				{ return IF; }
 "THEN"			{ return THEN; }
 "ELSE"			{ return ELSE; }
 "ENDIF"			{ return ENDIF; }
 "WHILE"			{ return WHILE; }
-"DO"			{ return DO; }
-"ENDWHILE"		{ return ENDWHILE; }
+"DO"				{ return DO; }
+"ENDWHILE"	{ return ENDWHILE; }
 "ENDDO"			{ return ENDDO; }
-"ENDFOR"		{ return ENDFOR; }
-";"				{ return SEMICOLON; }
+";"					{ return SEMICOLON; }
 
 "READ"			{ return READ; }
 "WRITE"			{ return WRITE; }
@@ -59,7 +61,5 @@
 [ \t]+
 [ \n]+
 [ \r]+
-[_a-zA-Z0-9]+		{yyerror("Nieznany identyfikator"); yyterminate();}		
-.			{yyerror("Nieznany znak"); yyterminate();}
-	
+.
 %%
