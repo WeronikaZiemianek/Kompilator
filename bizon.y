@@ -27,13 +27,15 @@
     int isInitialized;
     int counter;
     int move;
-  	long long int arraySize;
+    long long int arraySize;
   } Idef;
 
   map<string, Idef> idefStack;
   int flagAssign;
   string expressionArgs[2] = {"-1", "-1"};
-
+  string expArgsTabIndex[2] = {"-1", "-1"};
+  Idef assignArg;
+  string assignArgTabIndex = "-1";
   void printAsmStack();
   void createIdef(Idef *idef, string name, string type, long long int isLocal, long long int arraySize);
   void insertIdef(string key, Idef i);
@@ -79,7 +81,7 @@ declarations PIDENTIFIER SEMICOLON {
   }
 }
 | declarations PIDENTIFIER LEFTBRACKET NUM COLON NUM RIGHTBRACKET SEMICOLON {
-  
+
   if(idefStack.find($2)!=idefStack.end()) {
       cout << "Błąd: linia " << yylineno << " - Redundancja deklaracji zmiennej " << $<str>2 << "\n";
       exit(1);
@@ -173,9 +175,94 @@ NUM {
 ;
 
 identifier:
-PIDENTIFIER {}
-| PIDENTIFIER LEFTBRACKET PIDENTIFIER RIGHTBRACKET {}
-| PIDENTIFIER LEFTBRACKET NUM RIGHTBRACKET {}
+PIDENTIFIER {
+    if(idefStack.find($1) == idefStack.end()){
+      cout << "Błąd linia: " << yylineno << " - Zmienna " << $<str>1 << " nie zostala zadeklarowana." << "\n";
+      exit(1);
+    }
+    if(idefStack.at($1).arraySize == 0){
+      if(!flagAssign){
+        if(idefStack.at($1).isInitialized ==0){
+	  cout << "Błąd linia: " << yylineno << " - Zmienna " << $<str>1 << " nie zostala zainicjalizowana." << "\n";
+	  exit(1);
+	}
+	if(expressionArgs[0] == "-1"){
+	  expressionArgs[0] = $1;
+	}
+	else{
+	  expressionArgs[1] = $1;
+	}
+      }
+    }
+    else
+    {
+	cout << "Błąd linia: " << yylineno << " - Brak podanego odwoania do elementu tablicy " << $<str>1 << "\n";
+	exit(1);
+    }
+}
+| PIDENTIFIER LEFTBRACKET PIDENTIFIER RIGHTBRACKET {
+    if(idefStack.find($1) == idefStack.end()){
+      cout << "Błąd linia: " << yylineno << " - Zmienna " << $<str>1 << " nie zostala zadeklarowana." << "\n";
+      exit(1);
+    }
+    if(idefStack.find($3) == idefStack.end()){
+      cout << "Błąd linia: " << yylineno << " - Zmienna " << $<str>3 << " nie zostala zadeklarowana." << "\n";
+      exit(1);
+    }
+    if(idefStack.at($1).arraySize == 0){
+      cout << "Błąd linia: " << yylineno << " - Zmienna " << $<str>1 << " nie jest tablica." << "\n";
+      exit(1);
+    }
+    else{
+      if(idefStack.at($3).isInitialized == 0){
+	  cout << "Błąd linia: " << yylineno << " - Zmienna " << $<str>3 << " nie zostala zainicjalizowana." << "\n";
+	  exit(1);
+      }
+      if(!flagAssign){
+        if(expressionArgs[0] == "-1"){
+          expressionArgs[0] = $1;
+          expArgsTabIndex[0] = $3;
+        }
+        else{
+          expressionArgs[1] = $1;
+	  expArgsTabIndex[1] = $3;
+        }
+      }
+      else{
+        assignArg = idefStack.at($1);
+        assignArgTabIndex = $3;
+      }
+    }
+}
+| PIDENTIFIER LEFTBRACKET NUM RIGHTBRACKET {
+    if(idefStack.find($1) == idefStack.end()){
+      cout << "Błąd linia: " << yylineno << " - Zmienna " << $<str>1 << " nie zostala zadeklarowana." << "\n";
+      exit(1);
+    }
+    if(idefStack.at($1).arraySize == 0){
+      cout << "Błąd linia: " << yylineno << " - Zmienna " << $<str>1 << " nie jest typu tablicowego." << "\n";
+      exit(1);
+    }
+    else{
+      Idef idef;
+      createIdef(&idef, $3, "NUMBER", 0, 0);
+      insertIdef($3, idef);
+      if(!flagAssign){
+        if(expressionArgs[0] == "-1"){
+          expressionArgs[0] = $1;
+          expArgsTabIndex[0] = $3;
+        }
+        else{
+          expressionArgs[1] = $1;
+          expArgsTabIndex[1] = $3;
+        }
+      }
+      else{
+        assignArg = idefStack.at($1);
+        assignArgTabIndex = $3;
+      }
+    }
+}
 ;
 
 %%
