@@ -1,0 +1,5 @@
+DECLARE
+a;
+IN
+a:=1+2;
+END
