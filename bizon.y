@@ -56,6 +56,8 @@
 
   void add(Idef a, Idef b);
   void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex);
+  void sub(Idef a, Idef b);
+  void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex);
 
 %}
 
@@ -226,14 +228,32 @@ value {
         aIndex = idefStack.at(expArgsTabIndex[0]);
     if(idefStack.count(expArgsTabIndex[1]) > 0)
         bIndex = idefStack.at(expArgsTabIndex[1]);
-    addTab(a, b, aIndex, bIndex);
+  //  addTab(a, b, aIndex, bIndex);
     expArgsTabIndex[0] = "-1";
     expArgsTabIndex[1] = "-1";
   }
   expressionArgs[0] = "-1";
   expressionArgs[1] = "-1";
 }
-| value SUBSTRACT value {}
+| value SUBSTRACT value {
+  Idef a = idefStack.at(expressionArgs[0]);
+  Idef b = idefStack.at(expressionArgs[1]);
+  if(a.type != "ARRAY" && b.type != "ARRAY"){
+    sub(a, b);
+  }
+  else {
+    Idef aIndex, bIndex;
+    if(idefStack.count(expArgsTabIndex[0]) > 0)
+        aIndex = idefStack.at(expArgsTabIndex[0]);
+    if(idefStack.count(expArgsTabIndex[1]) > 0)
+        bIndex = idefStack.at(expArgsTabIndex[1]);
+    subTab(a, b, aIndex, bIndex);
+    expArgsTabIndex[0] = "-1";
+    expArgsTabIndex[1] = "-1";
+  }
+  expressionArgs[0] = "-1";
+  expressionArgs[1] = "-1";
+}
 | value MULTIPLY value {}
 | value DIVIDE value {}
 | value MOD value {}
@@ -421,15 +441,13 @@ void zeroReg(long long int reg) {
 }
 
 void binToAsmStack(long long int reg, string bin) {
-  long long int temp = firstFreeReg();
   long long int maxSize = bin.size();
   for(long long int i = 0; i <= maxSize; i++){
 		if(bin[i] == '1'){
 			pushCmd("INC " + to_string(reg));
 		}
 		if(i < (maxSize - 1)){
-          pushCmd("COPY " + to_string(reg) + " " + to_string(temp));
-          pushCmd("ADD " + to_string(temp) + " " + to_string(reg));
+          pushCmd("ADD " + to_string(reg) + " " + to_string(reg));
 		}
 	}
 }
@@ -526,10 +544,7 @@ void add(Idef a, Idef b) {
     else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
         if(a.name == b.name) {
             memToReg(a.mem);
-            long long int temp = firstFreeReg();
-            pushCmd("COPY " + to_string(temp) + " " + to_string(a.mem));
-            pushCmd("ADD " + to_string(a.mem) + " " + to_string(temp));
-
+            pushCmd("ADD " + to_string(a.mem) + " " + to_string(a.mem));
         }
         else {
             memToReg(a.mem);
@@ -639,16 +654,8 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       if(aIndex.type == "NUMBER" && bIndex.type == "NUMBER") {
           long long int Aaddres = a.mem + stoll(aIndex.name) + 1;
           long long int Baddres = b.mem + stoll(bIndex.name) + 1;
-          if(a.name == b.name && Aaddres == Baddres) {
-              memToReg(Aaddres);
-              long long int temp = firstFreeReg();
-              pushCmd("COPY " + to_string(Aaddres) + " " + to_string(temp));
-              pushCmd("ADD " + to_string(temp) + " " + to_string(Aaddres));
-          }
-          else {
-              memToReg(Aaddres);
-              pushCmd("ADD " + to_string(Aaddres) + " " + to_string(Baddres));
-          }
+          memToReg(Aaddres);
+          pushCmd("ADD " + to_string(Aaddres) + " " + to_string(Baddres));
           removeIdef(aIndex.name);
           removeIdef(bIndex.name);
       }
@@ -676,9 +683,7 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
               pushCmd("ADD " + to_string(a.mem) + " " + to_string(aIndex.mem));
               regToMem(1);
               pushCmd("LOADTAB 1");
-              long long int temp = firstFreeReg();
-              pushCmd("COPY " + to_string(1) + " " + to_string(temp));
-              pushCmd("ADD " + to_string(temp) + " " + to_string(1));
+              pushCmd("ADD " + to_string(1) + " " + to_string(1));
           }
           else {
               memToReg(a.mem);
@@ -692,5 +697,148 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           }
       }
   }
+}
 
+void sub(Idef a, Idef b) {
+    if(a.type == "NUMBER" && b.type == "NUMBER") {
+        long long int value = max(stoll(a.name) - stoll(b.name), (long long int) 0);
+        setReg(to_string(value), firstFreeReg());
+        removeIdef(a.name);
+        removeIdef(b.name);
+    }
+    else if(a.type == "NUMBER" && b.type == "IDENTIFIER") {
+        setReg(a.name, a.mem);
+        pushCmd("SUB " + to_string(a.mem) + " " + to_string(b.mem));
+        removeIdef(a.name);
+    }
+    else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
+        setReg(b.name, b.mem);
+        pushCmd("SUB " + to_string(a.mem) + " " + to_string(b.mem));
+        removeIdef(b.name);
+    }
+    else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
+        memToReg(a.mem);
+        pushCmd("SUB " + to_string(a.mem) + " " +  to_string(a.mem));
+    }
+}
+
+void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
+  if(a.type == "NUMBER" && b.type == "ARRAY") {
+      if(bIndex.type == "NUMBER") {
+          long long int addres = b.mem + stoll(bIndex.name) + 1;
+          setReg(a.name, a.mem);
+          pushCmd("SUB " + to_string(a.mem) + " " + to_string(addres));
+          removeIdef(a.name);
+          removeIdef(bIndex.name);
+      }
+      else if(bIndex.type == "IDENTIFIER") {
+          memToReg(b.mem);
+          pushCmd("SUB " + to_string(b.mem) + " " + to_string(bIndex.mem));
+          regToMem(1);
+          setReg(a.name, a.mem);
+          pushCmd("SUBTAB 1");
+          removeIdef(a.name);
+      }
+  }
+  else if(a.type == "ARRAY" && b.type == "NUMBER") {
+      if(aIndex.type == "NUMBER") {
+          long long int addres = a.mem + stoll(aIndex.name) + 1;
+          setReg(b.name, b.mem);
+          pushCmd("SUB " + to_string(addres) + " " + to_string(b.mem));
+          removeIdef(b.name);
+          removeIdef(aIndex.name);
+      }
+      else if(aIndex.type == "IDENTIFIER") {
+          memToReg(a.mem);
+          pushCmd("SUB " + to_string(a.mem) + " " + to_string(aIndex.mem));
+          regToMem(1);
+          setReg(b.name, b.mem);
+          pushCmd("SUBTAB 1");
+          removeIdef(b.name);
+      }
+  }
+  else if(a.type == "IDENTIFIER" && b.type == "ARRAY") {
+      if(bIndex.type == "NUMBER") {
+          long long int addres = b.mem + stoll(bIndex.name) + 1;
+          memToReg(a.mem);
+          pushCmd("SUB " + to_string(a.mem) + " " + to_string(addres));
+          removeIdef(bIndex.name);
+      }
+      else if(bIndex.type == "IDENTIFIER") {
+          memToReg(b.mem);
+          pushCmd("SUB " + to_string(b.mem) + " " + to_string(bIndex.mem));
+          regToMem(1);
+          memToReg(a.mem);
+          pushCmd("SUBTAB 1");
+      }
+  }
+  else if(a.type == "ARRAY" && b.type == "IDENTIFIER") {
+      if(aIndex.type == "NUMBER") {
+          long long int addres = a.mem + stoll(aIndex.name) + 1;
+          memToReg(b.mem);
+          pushCmd("SUB " + to_string(addres) + " " + to_string(b.mem));
+          removeIdef(aIndex.name);
+      }
+      else if(aIndex.type == "IDENTIFIER") {
+          memToReg(a.mem);
+          pushCmd("SUB " + to_string(a.mem) + " " + to_string(aIndex.mem));
+          regToMem(1);
+          memToReg(b.mem);
+          pushCmd("SUBTAB 1");
+      }
+  }
+  else if(a.type == "ARRAY" && b.type == "ARRAY") {
+      if(aIndex.type == "NUMBER" && bIndex.type == "NUMBER") {
+          long long int Aaddres = a.mem + stoll(aIndex.name) + 1;
+          long long int Baddres = b.mem + stoll(bIndex.name) + 1;
+          if(a.name == b.name && Aaddres == Baddres) {
+              memToReg(Aaddres);
+              pushCmd("SUB " + to_string(Aaddres) + " " + to_string(Aaddres));
+          }
+          else {
+              memToReg(Aaddres);
+              pushCmd("SUB " + to_string(Aaddres) + " " + to_string(Baddres));
+          }
+          removeIdef(aIndex.name);
+          removeIdef(bIndex.name);
+      }
+      else if(aIndex.type == "NUMBER" && bIndex.type == "IDENTIFIER") {
+          long long int addres = a.mem + stoll(aIndex.name) + 1;
+          memToReg(b.mem);
+          pushCmd("SUB " + to_string(b.mem) + " " + to_string(bIndex.mem));
+          regToMem(1);
+          memToReg(addres);
+          pushCmd("SUBTAB 1");
+          removeIdef(aIndex.name);
+      }
+      else if(aIndex.type == "IDENTIFIER" && bIndex.type == "NUMBER") {
+          long long int addres = b.mem + stoll(bIndex.name) + 1;
+          memToReg(a.mem);
+          pushCmd("SUB " + to_string(a.mem) + " " + to_string(aIndex.mem));
+          regToMem(1);
+          memToReg(addres);
+          pushCmd("SUBTAB 1");
+          removeIdef(bIndex.name);
+      }
+      else if(aIndex.type == "IDENTIFIER" && bIndex.type == "IDENTIFIER") {
+          if(a.name == b.name && aIndex.name == bIndex.name) {
+              memToReg(a.mem);
+              pushCmd("SUB " + to_string(a.mem) + " " + to_string(aIndex.mem));
+              regToMem(1);
+              pushCmd("LOADTAB 1");
+              long long int temp = firstFreeReg();
+              pushCmd("SUB " + to_string(1) + " " + to_string(1));
+          }
+          else {
+              memToReg(a.mem);
+              pushCmd("SUB " + to_string(a.mem) + " " + to_string(aIndex.mem));
+              regToMem(1);
+              memToReg(b.mem);
+              pushCmd("SUB " + to_string(b.mem) + " " + to_string(bIndex.mem));
+              regToMem(0);
+              pushCmd("LOADTAB 1");
+              pushCmd("SUBTAB 0");
+          }
+      }
+  }
 }
