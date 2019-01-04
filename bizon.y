@@ -18,7 +18,6 @@
   extern int yylineno;
   int yyerror(const string str);
 
-  vector<string> asmStack;
   typedef struct {
     string name;
     // NUMBER/IDENTIFIER/ARRAY
@@ -31,16 +30,20 @@
     long long int mem;
   } Idef;
 
-
   map<string, Idef> idefStack;
+  vector<string> asmStack;
+
   int flagAssign;
   int flagWrite;
+
+  Idef assignArg;
+  string assignArgTabIndex = "-1";
   string expressionArgs[2] = {"-1", "-1"};
   string expArgsTabIndex[2] = {"-1", "-1"};
-  string assignArgTabIndex = "-1";
-  Idef assignArg;
+
   long long int memCounter;
 
+  void printAsm(string outFileName);
   void printAsmStack();
   void createIdef(Idef *idef, string name, string type, long long int isLocal, long long int arraySize);
   void insertIdef(string key, Idef i);
@@ -53,6 +56,7 @@
   void memToReg(long long int mem);
   void pushCmd(string s);
   string decToBin(long long int n);
+  string to_ascii(long long int value);
 
   void add(Idef a, Idef b);
   void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex);
@@ -130,7 +134,7 @@ declarations PIDENTIFIER SEMICOLON {
       createIdef(&idef, $2, "ARR", 0, arraySize);
       insertIdef($2, idef);
       memCounter += arraySize;
-      setReg(to_string(idef.mem+1),idef.mem);
+      setReg(to_ascii(idef.mem+1),idef.mem);
       regToMem(idef.mem);
   }
 }
@@ -157,17 +161,16 @@ expression SEMICOLON {
       removeIdef(idef.name);
     }
     else {
-
       regToMem(0);
       memToReg(assignArg.mem);
-      pushCmd("ADD " + to_string(idef.mem));
+      pushCmd("ADD " + to_ascii(idef.mem));
       regToMem(2);
       memToReg(0);
       pushCmd("STORETAB 2");
     }
   }
   else if(assignArg.isLocal == 0) {
-
+    pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(memCounter));
     regToMem(assignArg.mem);
   }
   else {
@@ -206,7 +209,7 @@ value {
     }
     else{
        memToReg(idef.mem);
-       pushCmd("ADD " + to_string(i.mem));
+       pushCmd("ADD " + to_ascii(i.mem));
        pushCmd("STORE 0");
        pushCmd("LOADTAB 0");
     }
@@ -331,8 +334,8 @@ PIDENTIFIER {
     }
     else{
       if(idefStack.at($3).isInitialized == 0){
-	  cout << "Błąd linia: " << yylineno << " - Zmienna " << $<str>3 << " nie zostala zainicjalizowana." << "\n";
-	  exit(1);
+	       cout << "Błąd linia: " << yylineno << " - Zmienna " << $<str>3 << " nie zostala zainicjalizowana." << "\n";
+	       exit(1);
       }
       if(!flagAssign){
         if(expressionArgs[0] == "-1"){
@@ -412,14 +415,14 @@ void insertIdef(string key, Idef idef) {
         memCounter++;
     }
     else {
-        idefStack.at(key).counter = idefStack.at(key).counter++;
+        idefStack.at(key).counter +=1;;
     }
 }
 
 void removeIdef(string key) {
     if(idefStack.count(key) > 0) {
         if(idefStack.at(key).counter > 0) {
-            idefStack.at(key).counter = idefStack.at(key).counter--;
+            idefStack.at(key).counter -= 1;
         }
         else {
             idefStack.erase(key);
@@ -436,32 +439,31 @@ void setReg(string number, long long int reg) {
 }
 
 void zeroReg(long long int reg) {
-  if(reg != 0)
-    pushCmd("SUB " + to_string(reg) + " " + to_string(reg));
+    pushCmd("SUB " + to_ascii(reg) + " " + to_ascii(reg));
 }
 
 void binToAsmStack(long long int reg, string bin) {
   long long int maxSize = bin.size();
   for(long long int i = 0; i <= maxSize; i++){
 		if(bin[i] == '1'){
-			pushCmd("INC " + to_string(reg));
+			pushCmd("INC " + to_ascii(reg));
 		}
 		if(i < (maxSize - 1)){
-          pushCmd("ADD " + to_string(reg) + " " + to_string(reg));
+          pushCmd("ADD " + to_ascii(reg) + " " + to_ascii(reg));
 		}
 	}
 }
 
 long long int firstFreeReg() {
-  return 0;
+  return 50;
 }
 
 void regToMem(long long int reg) {
-	pushCmd("STORE " + to_string(reg));
+	pushCmd("STORE " + to_ascii(reg));
 }
 
 void memToReg(long long int mem) {
-	pushCmd("LOAD " + to_string(mem));
+	pushCmd("LOAD " + to_ascii(mem));
 }
 
 void pushCmd(string s) {
@@ -469,17 +471,23 @@ void pushCmd(string s) {
 }
 
 string decToBin(long long int n) {
-    string s;
-    while(n!=0){
-      if(n%2==0){
-        s="0"+s;
-      }
-      else{
-        s="1"+s;
-      }
-      n=n/2;
-    }
-    return s;
+    string r;
+    while(n!=0) {r=(n%2==0 ?"0":"1")+r; n/=2;}
+    return r;
+}
+
+void printAsm(string outFileName) {
+    ofstream out_code(outFileName);
+	long long int i;
+	for(i = 0; i < asmStack.size(); i++)
+        out_code << asmStack.at(i) << endl;
+}
+
+
+void printAsmStack(){
+	long long int i;
+	for(i = 0; i < asmStack.size(); i++)
+        cout << asmStack.at(i) << endl;
 }
 
 int main(int argv, char* argc[]){
@@ -489,6 +497,14 @@ int main(int argv, char* argc[]){
   memCounter = 65;
 
   yyparse();
+
+  string file = "";
+    if(argv < 2)
+        printAsmStack();
+    else {
+        file = argc[1];
+        printAsm(file);
+    }
 	return 0;
 }
 
@@ -497,10 +513,27 @@ int yyerror(string str){
     exit(1);
 }
 
-void printAsmStack() {
-	long long int i;
-	for(i = 0; i < asmStack.size(); i++)
-        cout << asmStack.at(i) << "\n";
+string to_ascii(long long int value) {
+  switch( value )
+   {
+   case 65:
+       return "A";
+   case 66:
+       return "B";
+   case 67:
+       return "C";
+   case 68:
+       return "D";
+   case 69:
+       return "E";
+   case 70:
+       return "F";
+   case 71:
+       return "G";
+   case 72:
+       return "H";
+   }
+   return 0;
 }
 
 //======= EXPRESSION FUNCTIONS =========//
@@ -509,7 +542,7 @@ void add(Idef a, Idef b) {
 
     if(a.type == "NUMBER" && b.type == "NUMBER") {
         long long int value = stoll(a.name) + stoll(b.name);
-        setReg(to_string(value), firstFreeReg());
+        setReg(to_ascii(value), firstFreeReg());
         removeIdef(a.name);
         removeIdef(b.name);
     }
@@ -517,13 +550,13 @@ void add(Idef a, Idef b) {
         if(stoll(a.name) < 10){
             memToReg(b.mem);
             for(int i=0; i < stoll(a.name); i++) {
-                pushCmd("INC " + to_string(b.mem));
+                pushCmd("INC " + to_ascii(b.mem));
             }
             removeIdef(a.name);
         }
         else {
             setReg(a.name, a.mem);
-            pushCmd("ADD " + to_string(a.mem) + " " + to_string(b.mem));
+            pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(b.mem));
             removeIdef(a.name);
         }
     }
@@ -537,18 +570,18 @@ void add(Idef a, Idef b) {
         }
         else {
             setReg(b.name, b.mem);
-            pushCmd("ADD " + to_string(b.mem) + " " + to_string(a.mem));
+            pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(a.mem));
             removeIdef(b.name);
         }
     }
     else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
         if(a.name == b.name) {
             memToReg(a.mem);
-            pushCmd("ADD " + to_string(a.mem) + " " + to_string(a.mem));
+            pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(a.mem));
         }
         else {
             memToReg(a.mem);
-            pushCmd("ADD " + to_string(a.mem) + " " +  to_string(b.mem));
+            pushCmd("ADD " + to_ascii(a.mem) + " " +  to_ascii(b.mem));
         }
     }
 }
@@ -560,24 +593,24 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           if(stoll(a.name) < 10) {
               memToReg(addres);
               for(int i=0; i < stoll(a.name); i++) {
-                  pushCmd("INC " + to_string(b.mem));
+                  pushCmd("INC " + to_ascii(b.mem));
               }
           }
           else {
               setReg(a.name, a.mem);
-              pushCmd("ADD " + to_string(a.mem) + " " + to_string(addres));
+              pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(addres));
           }
           removeIdef(a.name);
           removeIdef(bIndex.name);
       }
       else if(bIndex.type == "IDENTIFIER") {
           memToReg(b.mem);
-          pushCmd("ADD " + to_string(b.mem) + " " + to_string(bIndex.mem));
+          pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
           regToMem(1);
           if(stoll(a.name) < 10) {
               pushCmd("LOADTAB 1");
               for(int i=0; i < stoll(a.name); i++) {
-                pushCmd("INC " + to_string(b.mem));
+                pushCmd("INC " + to_ascii(b.mem));
               }
           }
           else {
@@ -593,24 +626,24 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           if(stoll(b.name) < 10) {
               memToReg(addres);
               for(int i=0; i < stoll(b.name); i++) {
-                  pushCmd("INC " + to_string(a.mem));
+                  pushCmd("INC " + to_ascii(a.mem));
               }
           }
           else {
               setReg(b.name, b.mem);
-              pushCmd("ADD " + to_string(b.mem) + " " + to_string(addres));
+              pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(addres));
           }
           removeIdef(b.name);
           removeIdef(aIndex.name);
       }
       else if(aIndex.type == "IDENTIFIER") {
           memToReg(a.mem);
-          pushCmd("ADD " + to_string(a.mem) + " " + to_string(aIndex.mem));
+          pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
           regToMem(1);
           if(stoll(b.name) < 10){
               pushCmd("LOADTAB 1");
               for(int i=0; i < stoll(b.name); i++) {
-                  pushCmd("INC " + to_string(a.mem));
+                  pushCmd("INC " + to_ascii(a.mem));
               }
           }
           else {
@@ -624,12 +657,12 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       if(bIndex.type == "NUMBER") {
           long long int addres = b.mem + stoll(bIndex.name) + 1;
           memToReg(a.mem);
-          pushCmd("ADD " + to_string(a.mem) + " " + to_string(addres));
+          pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(addres));
           removeIdef(bIndex.name);
       }
       else if(bIndex.type == "IDENTIFIER") {
           memToReg(b.mem);
-          pushCmd("ADD " + to_string(b.mem) + " " + to_string(bIndex.mem));
+          pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
           regToMem(1);
           memToReg(a.mem);
           pushCmd("ADDTAB 1");
@@ -639,12 +672,12 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       if(aIndex.type == "NUMBER") {
           long long int addres = a.mem + stoll(aIndex.name) + 1;
           memToReg(b.mem);
-          pushCmd("ADD " + to_string(b.mem) + " " + to_string(addres));
+          pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(addres));
           removeIdef(aIndex.name);
       }
       else if(aIndex.type == "IDENTIFIER") {
           memToReg(a.mem);
-          pushCmd("ADD " + to_string(a.mem) + " " + to_string(aIndex.mem));
+          pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
           regToMem(1);
           memToReg(b.mem);
           pushCmd("ADDTAB 1");
@@ -655,14 +688,14 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           long long int Aaddres = a.mem + stoll(aIndex.name) + 1;
           long long int Baddres = b.mem + stoll(bIndex.name) + 1;
           memToReg(Aaddres);
-          pushCmd("ADD " + to_string(Aaddres) + " " + to_string(Baddres));
+          pushCmd("ADD " + to_ascii(Aaddres) + " " + to_ascii(Baddres));
           removeIdef(aIndex.name);
           removeIdef(bIndex.name);
       }
       else if(aIndex.type == "NUMBER" && bIndex.type == "IDENTIFIER") {
           long long int addres = a.mem + stoll(aIndex.name) + 1;
           memToReg(b.mem);
-          pushCmd("ADD " + to_string(b.mem) + " " + to_string(bIndex.mem));
+          pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
           regToMem(1);
           memToReg(addres);
           pushCmd("ADDTAB 1");
@@ -671,7 +704,7 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       else if(aIndex.type == "IDENTIFIER" && bIndex.type == "NUMBER") {
           long long int addres = b.mem + stoll(bIndex.name) + 1;
           memToReg(a.mem);
-          pushCmd("ADD " + to_string(a.mem) + " " + to_string(aIndex.mem));
+          pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
           regToMem(1);
           memToReg(addres);
           pushCmd("ADDTAB 1");
@@ -680,17 +713,17 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       else if(aIndex.type == "IDENTIFIER" && bIndex.type == "IDENTIFIER") {
           if(a.name == b.name && aIndex.name == bIndex.name) {
               memToReg(a.mem);
-              pushCmd("ADD " + to_string(a.mem) + " " + to_string(aIndex.mem));
+              pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
               regToMem(1);
               pushCmd("LOADTAB 1");
-              pushCmd("ADD " + to_string(1) + " " + to_string(1));
+              pushCmd("ADD " + to_ascii(1) + " " + to_ascii(1));
           }
           else {
               memToReg(a.mem);
-              pushCmd("ADD " + to_string(a.mem) + " " + to_string(aIndex.mem));
+              pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
               regToMem(1);
               memToReg(b.mem);
-              pushCmd("ADD " + to_string(b.mem) + " " + to_string(bIndex.mem));
+              pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
               regToMem(0);
               pushCmd("LOADTAB 1");
               pushCmd("ADDTAB 0");
@@ -702,23 +735,23 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
 void sub(Idef a, Idef b) {
     if(a.type == "NUMBER" && b.type == "NUMBER") {
         long long int value = max(stoll(a.name) - stoll(b.name), (long long int) 0);
-        setReg(to_string(value), firstFreeReg());
+        setReg(to_ascii(value), firstFreeReg());
         removeIdef(a.name);
         removeIdef(b.name);
     }
     else if(a.type == "NUMBER" && b.type == "IDENTIFIER") {
         setReg(a.name, a.mem);
-        pushCmd("SUB " + to_string(a.mem) + " " + to_string(b.mem));
+        pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(b.mem));
         removeIdef(a.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
         setReg(b.name, b.mem);
-        pushCmd("SUB " + to_string(a.mem) + " " + to_string(b.mem));
+        pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(b.mem));
         removeIdef(b.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
         memToReg(a.mem);
-        pushCmd("SUB " + to_string(a.mem) + " " +  to_string(a.mem));
+        pushCmd("SUB " + to_ascii(a.mem) + " " +  to_ascii(a.mem));
     }
 }
 
@@ -727,13 +760,13 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       if(bIndex.type == "NUMBER") {
           long long int addres = b.mem + stoll(bIndex.name) + 1;
           setReg(a.name, a.mem);
-          pushCmd("SUB " + to_string(a.mem) + " " + to_string(addres));
+          pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(addres));
           removeIdef(a.name);
           removeIdef(bIndex.name);
       }
       else if(bIndex.type == "IDENTIFIER") {
           memToReg(b.mem);
-          pushCmd("SUB " + to_string(b.mem) + " " + to_string(bIndex.mem));
+          pushCmd("SUB " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
           regToMem(1);
           setReg(a.name, a.mem);
           pushCmd("SUBTAB 1");
@@ -744,13 +777,13 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       if(aIndex.type == "NUMBER") {
           long long int addres = a.mem + stoll(aIndex.name) + 1;
           setReg(b.name, b.mem);
-          pushCmd("SUB " + to_string(addres) + " " + to_string(b.mem));
+          pushCmd("SUB " + to_ascii(addres) + " " + to_ascii(b.mem));
           removeIdef(b.name);
           removeIdef(aIndex.name);
       }
       else if(aIndex.type == "IDENTIFIER") {
           memToReg(a.mem);
-          pushCmd("SUB " + to_string(a.mem) + " " + to_string(aIndex.mem));
+          pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
           regToMem(1);
           setReg(b.name, b.mem);
           pushCmd("SUBTAB 1");
@@ -761,12 +794,12 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       if(bIndex.type == "NUMBER") {
           long long int addres = b.mem + stoll(bIndex.name) + 1;
           memToReg(a.mem);
-          pushCmd("SUB " + to_string(a.mem) + " " + to_string(addres));
+          pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(addres));
           removeIdef(bIndex.name);
       }
       else if(bIndex.type == "IDENTIFIER") {
           memToReg(b.mem);
-          pushCmd("SUB " + to_string(b.mem) + " " + to_string(bIndex.mem));
+          pushCmd("SUB " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
           regToMem(1);
           memToReg(a.mem);
           pushCmd("SUBTAB 1");
@@ -776,12 +809,12 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       if(aIndex.type == "NUMBER") {
           long long int addres = a.mem + stoll(aIndex.name) + 1;
           memToReg(b.mem);
-          pushCmd("SUB " + to_string(addres) + " " + to_string(b.mem));
+          pushCmd("SUB " + to_ascii(addres) + " " + to_ascii(b.mem));
           removeIdef(aIndex.name);
       }
       else if(aIndex.type == "IDENTIFIER") {
           memToReg(a.mem);
-          pushCmd("SUB " + to_string(a.mem) + " " + to_string(aIndex.mem));
+          pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
           regToMem(1);
           memToReg(b.mem);
           pushCmd("SUBTAB 1");
@@ -793,11 +826,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           long long int Baddres = b.mem + stoll(bIndex.name) + 1;
           if(a.name == b.name && Aaddres == Baddres) {
               memToReg(Aaddres);
-              pushCmd("SUB " + to_string(Aaddres) + " " + to_string(Aaddres));
+              pushCmd("SUB " + to_ascii(Aaddres) + " " + to_ascii(Aaddres));
           }
           else {
               memToReg(Aaddres);
-              pushCmd("SUB " + to_string(Aaddres) + " " + to_string(Baddres));
+              pushCmd("SUB " + to_ascii(Aaddres) + " " + to_ascii(Baddres));
           }
           removeIdef(aIndex.name);
           removeIdef(bIndex.name);
@@ -805,7 +838,7 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       else if(aIndex.type == "NUMBER" && bIndex.type == "IDENTIFIER") {
           long long int addres = a.mem + stoll(aIndex.name) + 1;
           memToReg(b.mem);
-          pushCmd("SUB " + to_string(b.mem) + " " + to_string(bIndex.mem));
+          pushCmd("SUB " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
           regToMem(1);
           memToReg(addres);
           pushCmd("SUBTAB 1");
@@ -814,7 +847,7 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       else if(aIndex.type == "IDENTIFIER" && bIndex.type == "NUMBER") {
           long long int addres = b.mem + stoll(bIndex.name) + 1;
           memToReg(a.mem);
-          pushCmd("SUB " + to_string(a.mem) + " " + to_string(aIndex.mem));
+          pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
           regToMem(1);
           memToReg(addres);
           pushCmd("SUBTAB 1");
@@ -823,18 +856,18 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
       else if(aIndex.type == "IDENTIFIER" && bIndex.type == "IDENTIFIER") {
           if(a.name == b.name && aIndex.name == bIndex.name) {
               memToReg(a.mem);
-              pushCmd("SUB " + to_string(a.mem) + " " + to_string(aIndex.mem));
+              pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
               regToMem(1);
               pushCmd("LOADTAB 1");
               long long int temp = firstFreeReg();
-              pushCmd("SUB " + to_string(1) + " " + to_string(1));
+              pushCmd("SUB " + to_ascii(1) + " " + to_ascii(1));
           }
           else {
               memToReg(a.mem);
-              pushCmd("SUB " + to_string(a.mem) + " " + to_string(aIndex.mem));
+              pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
               regToMem(1);
               memToReg(b.mem);
-              pushCmd("SUB " + to_string(b.mem) + " " + to_string(bIndex.mem));
+              pushCmd("SUB " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
               regToMem(0);
               pushCmd("LOADTAB 1");
               pushCmd("SUBTAB 0");
