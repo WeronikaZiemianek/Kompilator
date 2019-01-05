@@ -45,7 +45,7 @@
 
   void printAsm(string outFileName);
   void printAsmStack();
-  void createIdef(Idef *idef, string name, string type, long long int isLocal, long long int arraySize);
+  void createIdef(Idef *idef, string name, string type, long long int isLocal, long long int arraySize, long long int move);
   void insertIdef(string key, Idef i);
   void removeIdef(string key);
   void setReg(string number, long long int reg);
@@ -98,7 +98,7 @@ declarations PIDENTIFIER SEMICOLON {
   }
   else {
       Idef idef;
-      createIdef(&idef, $2, "IDENTIFIER", 0, 0);
+      createIdef(&idef, $2, "IDENTIFIER", 0, 0, 0);
       insertIdef($2, idef);
   }
 }
@@ -131,7 +131,7 @@ declarations PIDENTIFIER SEMICOLON {
   else {
       long long int arraySize = atoll($6)-atoll($4) + 1;
       Idef idef;
-      createIdef(&idef, $2, "ARR", 0, arraySize);
+      createIdef(&idef, $2, "ARR", 0, arraySize, atoll($4));
       insertIdef($2, idef);
       memCounter += arraySize;
       setReg(to_string(idef.mem+1),idef.mem);
@@ -170,7 +170,6 @@ expression SEMICOLON {
     }
   }
   else if(assignArg.isLocal == 0) {
-    pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(memCounter));
     regToMem(assignArg.mem);
   }
   else {
@@ -194,7 +193,7 @@ expression:
 value {
   Idef idef = idefStack.at(expressionArgs[0]);
   if(idef.type == "NUMBER") {
-    setReg(idef.name, idef.mem);
+    setReg(idef.name, assignArg.mem);
     removeIdef(idef.name);
   }
   else if(idef.type == "IDENTIFIER") {
@@ -278,7 +277,7 @@ NUM {
         exit(1);
     }
     Idef idef;
-    createIdef(&idef, $1, "NUMBER", 0, 0);
+    createIdef(&idef, $1, "NUMBER", 0, 0, 0);
     insertIdef($1, idef);
 
     if (expressionArgs[0] == "-1"){
@@ -364,7 +363,7 @@ PIDENTIFIER {
     }
     else{
       Idef idef;
-      createIdef(&idef, $3, "NUMBER", 0, 0);
+      createIdef(&idef, $3, "NUMBER", 0, 0, 0);
       insertIdef($3, idef);
 
       if(!flagAssign){
@@ -386,10 +385,11 @@ PIDENTIFIER {
 ;
 
 %%
-void createIdef(Idef *idef, string name, string type, long long int isLocal, long long int arraySize){
+void createIdef(Idef *idef, string name, string type, long long int isLocal, long long int arraySize, long long int move){
     idef->name = name;
     idef->mem = memCounter;
     idef->type = type;
+    idef->move = move;
 
     if(isLocal){
       idef->isLocal = 1;
@@ -541,7 +541,7 @@ string to_ascii(long long int value) {
 void add(Idef a, Idef b) {
     if(a.type == "NUMBER" && b.type == "NUMBER") {
         long long int value = stoll(a.name) + stoll(b.name);
-        setReg(to_string(value), a.mem);
+        setReg(to_string(value), assignArg.mem);
         removeIdef(a.name);
         removeIdef(b.name);
     }
@@ -551,12 +551,13 @@ void add(Idef a, Idef b) {
             for(int i=0; i < stoll(a.name); i++) {
                 pushCmd("INC " + to_ascii(b.mem));
             }
-            pushCmd("COPY " + to_ascii(a.mem) + " " + to_ascii(b.mem));
+            pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(b.mem));
             removeIdef(a.name);
         }
         else {
             setReg(a.name, a.mem);
             pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(b.mem));
+            pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(a.mem));
             removeIdef(a.name);
         }
     }
@@ -566,12 +567,13 @@ void add(Idef a, Idef b) {
             for(int i=0; i < stoll(b.name); i++) {
                 pushCmd("INC " + to_ascii(a.mem));
             }
-            pushCmd("COPY " + to_ascii(b.mem) + " " + to_ascii(a.mem));
+            pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(a.mem));
             removeIdef(b.name);
         }
         else {
             setReg(b.name, b.mem);
             pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(a.mem));
+            pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(b.mem));
             removeIdef(b.name);
         }
     }
@@ -584,7 +586,7 @@ void add(Idef a, Idef b) {
             memToReg(a.mem);
             pushCmd("ADD " + to_ascii(a.mem) + " " +  to_ascii(b.mem));
         }
-        pushCmd("COPY " + to_ascii(memCounter) + " " + to_ascii(a.mem));
+        pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(a.mem));
     }
 }
 
