@@ -706,14 +706,16 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           pushCmd("ADD B C");
           pushCmd("COPY A B");
           memToReg(2);
+          pushCmd("PUT B");
 
           setReg(to_string(aIndex.memory),1);
           memToReg(8);
           indexFix = a.memory - a.move + 1;
           setReg(to_string(indexFix),3);
-          pushCmd("ADD H C");
+          pushCmd("SUB H C");
           pushCmd("COPY A H");
           memToReg(8);
+          pushCmd("PUT H");
 
           pushCmd("ADD H B");
         }
