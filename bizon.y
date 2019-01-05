@@ -59,13 +59,15 @@
 
   string decToBin(long long int n);
   string to_ascii(long long int value);
+
+  void add(Idef a, Idef b);
+  void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex);
 %}
 
 %union {
     char* str;
     long long int num;
 }
-
 
 %token <str> NUM
 %token <str> DECLARE IN END
@@ -257,7 +259,24 @@ value {
       expArgsTabIndex[0] = "-1";
   }
 }
-| value ADD value {}
+| value ADD value {
+        Idef a = idefStack.at(expressionArgs[0]);
+        Idef b = idefStack.at(expressionArgs[1]);
+        if(a.type != "ARRAY" && b.type != "ARRAY")
+            add(a, b);
+        else {
+            Idef aI, bI;
+            if(idefStack.count(expArgsTabIndex[0]) > 0)
+                aI = idefStack.at(expArgsTabIndex[0]);
+            if(idefStack.count(expArgsTabIndex[1]) > 0)
+                bI = idefStack.at(expArgsTabIndex[1]);
+            addTab(a, b, aI, bI);
+            expArgsTabIndex[0] = "-1";
+            expArgsTabIndex[1] = "-1";
+        }
+        expressionArgs[0] = "-1";
+        expressionArgs[1] = "-1";
+    }
 | value SUBSTRACT value {}
 | value MULTIPLY value {}
 | value DIVIDE value {}
@@ -465,7 +484,6 @@ void printAsm(string outFileName) {
         out_code << asmStack.at(i) << endl;
 }
 
-
 void printAsmStack(){
 	for(long long int i = 0; i < asmStack.size(); i++)
         cout << asmStack.at(i) << endl;
@@ -514,4 +532,190 @@ string to_ascii(long long int value) {
        return "H";
    }
    return 0;
+}
+
+void add(Idef a, Idef b) {
+    if(a.type == "NUMBER" && b.type == "NUMBER") {
+        long long int val = stoll(a.name) + stoll(b.name);
+        setReg(to_string(val),8);
+        removeIdef(a.name);
+        removeIdef(b.name);
+    }
+    else if(a.type == "NUMBER" && b.type == "IDENTIFIER") {
+        setReg(to_string(b.memory),1);
+        memToReg(2);
+        setReg(a.name, 8);
+        pushCmd("ADD H B");
+        removeIdef(a.name);
+    }
+    else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
+        setReg(to_string(a.memory),1);
+        memToReg(2);
+        setReg(b.name, 8);
+        pushCmd("ADD H B");
+        removeIdef(b.name);
+    }
+    else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
+        setReg(to_string(a.memory),1);
+        memToReg(2);
+        setReg(to_string(b.memory),1);
+        memToReg(8);
+        pushCmd("ADD H B");
+    }
+}
+
+void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
+  if(a.type == "NUMBER" && b.type == "ARRAY") {
+      if(bIndex.type == "NUMBER") {
+          long long int addr = b.memory + stoll(bIndex.name) - b.move + 1;
+          setReg(to_string(addr),1);
+          memToReg(2);
+          setReg(a.name, 8);
+          pushCmd("ADD H B");
+          removeIdef(a.name);
+      }
+      else if(bIndex.type == "IDENTIFIER") {
+          setReg(to_string(bIndex.memory),1);
+          memToReg(2);
+          long long int indexFix = b.memory - b.move + 1;
+          setReg(to_string(indexFix),3);
+          pushCmd("SUB B C");
+          pushCmd("COPY A B");
+          memToReg(2);
+          setReg(a.name, 8);
+          pushCmd("ADD H B");
+          removeIdef(a.name);
+      }
+  }
+  else if(a.type == "ARRAY" && b.type == "NUMBER") {
+        if(aIndex.type == "NUMBER") {
+            long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(2);
+            setReg(b.name, 8);
+            pushCmd("ADD H B");
+            removeIdef(b.name);
+        }
+        else if(aIndex.type == "IDENTIFIER") {
+            setReg(to_string(aIndex.memory),1);
+            memToReg(2);
+            long long int indexFix = a.memory - a.move + 1;
+            setReg(to_string(indexFix),3);
+            pushCmd("SUB B C");
+            pushCmd("COPY A B");
+            memToReg(2);
+            setReg(b.name, 8);
+            pushCmd("ADD H B");
+            removeIdef(b.name);
+        }
+    }
+    else if(a.type == "IDENTIFIER" && b.type == "ARRAY") {
+        if(bIndex.type == "NUMBER") {
+            long long int addr = b.memory + stoll(bIndex.name) - b.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(2);
+            setReg(to_string(a.memory),1);
+            memToReg(8);
+            pushCmd("ADD H B");
+        }
+        else if(bIndex.type == "IDENTIFIER") {
+            setReg(to_string(bIndex.memory),1);
+            memToReg(2);
+            long long int indexFix = b.memory - b.move + 1;
+            setReg(to_string(indexFix),3);
+            pushCmd("SUB B C");
+            pushCmd("COPY A B");
+            memToReg(2);
+            setReg(to_string(a.memory),1);
+            memToReg(8);
+            pushCmd("ADD H B");
+        }
+    }
+    else if(a.type == "ARRAY" && b.type == "IDENTIFIER") {
+        if(aIndex.type == "NUMBER") {
+            long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(2);
+            setReg(to_string(b.memory),1);
+            memToReg(8);
+            pushCmd("ADD H B");
+        }
+        else if(aIndex.type == "IDENTIFIER") {
+            setReg(to_string(aIndex.memory),1);
+            memToReg(2);
+            long long int indexFix = a.memory - a.move + 1;
+            setReg(to_string(indexFix),3);
+            pushCmd("SUB B C");
+            pushCmd("COPY A B");
+            memToReg(2);
+            setReg(to_string(aIndex.memory),1);
+            memToReg(8);
+            pushCmd("ADD H B");
+        }
+    }
+    else if(a.type == "ARRAY" && b.type == "ARRAY") {
+        if(aIndex.type == "NUMBER" && bIndex.type == "NUMBER") {
+            long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
+            long long int addrB = b.memory + stoll(bIndex.name) - b.move + 1;
+            setReg(to_string(addrA),1);
+            memToReg(2);
+            setReg(to_string(addrB),1);
+            memToReg(8);
+            pushCmd("ADD H B");
+            removeIdef(aIndex.name);
+            removeIdef(bIndex.name);
+        }
+        else if(aIndex.type == "NUMBER" && bIndex.type == "IDENTIFIER") {
+            long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
+            setReg(to_string(addrA),1);
+            memToReg(2);
+
+            setReg(to_string(bIndex.memory),1);
+            memToReg(8);
+            long long int indexFix = b.memory - b.move + 1;
+            setReg(to_string(indexFix),3);
+            pushCmd("ADD H C");
+            pushCmd("COPY A H");
+            memToReg(8);
+
+            pushCmd("ADD H B");
+            removeIdef(aIndex.name);
+        }
+        else if(aIndex.type == "IDENTIFIER" && bIndex.type == "NUMBER") {
+          long long int addrB = b.memory + stoll(bIndex.name) - b.move + 1;
+          setReg(to_string(addrB),1);
+          memToReg(2);
+
+          setReg(to_string(aIndex.memory),1);
+          memToReg(8);
+          long long int indexFix = a.memory - a.move + 1;
+          setReg(to_string(indexFix),3);
+
+          pushCmd("ADD H C");
+          pushCmd("COPY A H");
+          memToReg(8);
+
+          pushCmd("ADD H B");
+          removeIdef(bIndex.name);
+        }
+        else if(aIndex.type == "IDENTIFIER" && bIndex.type == "IDENTIFIER") {
+          setReg(to_string(bIndex.memory),1);
+          memToReg(2);
+          long long int indexFix = b.memory - b.move + 1;
+          setReg(to_string(indexFix),3);
+          pushCmd("ADD B C");
+          pushCmd("COPY A B");
+          memToReg(2);
+
+          setReg(to_string(aIndex.memory),1);
+          memToReg(8);
+          indexFix = a.memory - a.move + 1;
+          setReg(to_string(indexFix),3);
+          pushCmd("ADD H C");
+          pushCmd("COPY A H");
+          memToReg(8);
+
+          pushCmd("ADD H B");
+        }
+    }
 }
