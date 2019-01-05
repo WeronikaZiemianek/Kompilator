@@ -186,7 +186,39 @@ expression SEMICOLON {
 | FOR PIDENTIFIER FROM value TO value DO commands ENDFOR {}
 | FOR PIDENTIFIER FROM value DOWNTO value DO commands ENDFOR {}
 | READ identifier SEMICOLON {}
-| WRITE value SEMICOLON {}
+|  WRITE {
+        flagAssign = 0;
+        flagWrite = 1;
+    } value SEMICOLON {
+        Idef ide = idefStack.at(expressionArgs[0]);
+
+        if(ide.type == "NUMBER") {
+            setReg(ide.name, assignArg.mem);
+            removeIdef(ide.name);
+        }
+        else if (ide.type == "IDENTIFIER") {
+            memToReg(ide.mem);
+        }
+        else {
+            Idef index = idefStack.at(expArgsTabIndex[0]);
+            if(index.type == "NUMBER") {
+                long long int tabElMem = ide.mem + stoll(index.name) + 1;
+                memToReg(tabElMem);
+                removeIdef(index.name);
+            }
+            else {
+                memToReg(ide.mem);
+                pushCmd("ADD " + to_ascii(ide.mem) + " " + to_ascii(index.mem));
+                pushCmd("STORE 0");
+                pushCmd("LOADTAB 0");
+            }
+        }
+        pushCmd("PUT " + to_ascii(assignArg.mem));
+        flagAssign = 1;
+        flagWrite = 0;
+        expressionArgs[0] = "-1";
+        expArgsTabIndex[0] = "-1";
+    }
 ;
 
 expression:
