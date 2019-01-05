@@ -134,7 +134,7 @@ declarations PIDENTIFIER SEMICOLON {
       createIdef(&idef, $2, "ARR", 0, arraySize);
       insertIdef($2, idef);
       memCounter += arraySize;
-      setReg(to_ascii(idef.mem+1),idef.mem);
+      setReg(to_string(idef.mem+1),idef.mem);
       regToMem(idef.mem);
   }
 }
@@ -231,7 +231,7 @@ value {
         aIndex = idefStack.at(expArgsTabIndex[0]);
     if(idefStack.count(expArgsTabIndex[1]) > 0)
         bIndex = idefStack.at(expArgsTabIndex[1]);
-  //  addTab(a, b, aIndex, bIndex);
+    addTab(a, b, aIndex, bIndex);
     expArgsTabIndex[0] = "-1";
     expArgsTabIndex[1] = "-1";
   }
@@ -494,7 +494,7 @@ int main(int argv, char* argc[]){
 
   flagAssign = 1;
   flagWrite = 0;
-  memCounter = 65;
+  memCounter = 5;
 
   yyparse();
 
@@ -516,21 +516,21 @@ int yyerror(string str){
 string to_ascii(long long int value) {
   switch( value )
    {
-   case 65:
+   case 5:
        return "A";
-   case 66:
+   case 6:
        return "B";
-   case 67:
+   case 7:
        return "C";
-   case 68:
+   case 8:
        return "D";
-   case 69:
+   case 9:
        return "E";
-   case 70:
+   case 10:
        return "F";
-   case 71:
+   case 11:
        return "G";
-   case 72:
+   case 12:
        return "H";
    }
    return 0;
@@ -539,19 +539,19 @@ string to_ascii(long long int value) {
 //======= EXPRESSION FUNCTIONS =========//
 
 void add(Idef a, Idef b) {
-
     if(a.type == "NUMBER" && b.type == "NUMBER") {
         long long int value = stoll(a.name) + stoll(b.name);
-        setReg(to_ascii(value), firstFreeReg());
+        setReg(to_string(value), a.mem);
         removeIdef(a.name);
         removeIdef(b.name);
     }
     else if(a.type == "NUMBER" && b.type == "IDENTIFIER") {
-        if(stoll(a.name) < 10){
+        if(stoll(a.name) < 15){
             memToReg(b.mem);
             for(int i=0; i < stoll(a.name); i++) {
                 pushCmd("INC " + to_ascii(b.mem));
             }
+            pushCmd("COPY " + to_ascii(a.mem) + " " + to_ascii(b.mem));
             removeIdef(a.name);
         }
         else {
@@ -561,11 +561,12 @@ void add(Idef a, Idef b) {
         }
     }
     else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
-        if(stoll(b.name) < 10){
+        if(stoll(b.name) < 15){
             memToReg(a.mem);
             for(int i=0; i < stoll(b.name); i++) {
-                pushCmd("INC " + a.mem);
+                pushCmd("INC " + to_ascii(a.mem));
             }
+            pushCmd("COPY " + to_ascii(b.mem) + " " + to_ascii(a.mem));
             removeIdef(b.name);
         }
         else {
@@ -583,6 +584,7 @@ void add(Idef a, Idef b) {
             memToReg(a.mem);
             pushCmd("ADD " + to_ascii(a.mem) + " " +  to_ascii(b.mem));
         }
+        pushCmd("COPY " + to_ascii(memCounter) + " " + to_ascii(a.mem));
     }
 }
 
