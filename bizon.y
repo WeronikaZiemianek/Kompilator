@@ -27,7 +27,7 @@
     int counter;
     int move;
     long long int arraySize;
-    long long int mem;
+    long long int memory;
   } Idef;
 
   map<string, Idef> idefStack;
@@ -45,24 +45,20 @@
 
   void printAsm(string outFileName);
   void printAsmStack();
+
   void createIdef(Idef *idef, string name, string type, long long int isLocal, long long int arraySize, long long int move);
   void insertIdef(string key, Idef i);
   void removeIdef(string key);
+
   void setReg(string number, long long int reg);
   void zeroReg(long long int reg);
   void binToAsmStack(long long int reg, string bin);
-  long long int firstFreeReg();
   void regToMem(long long int reg);
-  void memToReg(long long int mem);
+  void memToReg(long long int memory);
   void pushCmd(string s);
+
   string decToBin(long long int n);
   string to_ascii(long long int value);
-
-  void add(Idef a, Idef b);
-  void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex);
-  void sub(Idef a, Idef b);
-  void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex);
-
 %}
 
 %union {
@@ -124,18 +120,16 @@ declarations PIDENTIFIER SEMICOLON {
   }
 
   else if (atoll($4) > atoll($6)) {
-          cout << "Błąd linia: " << yylineno << " - Deklaracja zmiennej tablicowej " << $<str>2 << " o wiekszym zakresie poczatkowym niz koncowym" << "\n";
-          exit(1);
+      cout << "Błąd linia: " << yylineno << " - Deklaracja zmiennej tablicowej " << $<str>2 << " o wiekszym zakresie poczatkowym niz koncowym" << "\n";
+      exit(1);
   }
 
   else {
       long long int arraySize = atoll($6)-atoll($4) + 1;
       Idef idef;
-      createIdef(&idef, $2, "ARR", 0, arraySize, atoll($4));
+      createIdef(&idef, $2, "ARRAY", 0, arraySize, atoll($4));
       insertIdef($2, idef);
       memCounter += arraySize;
-      setReg(to_string(idef.mem+1),idef.mem);
-      regToMem(idef.mem);
   }
 }
 |
@@ -156,21 +150,25 @@ expression SEMICOLON {
   if(assignArg.type == "ARRAY") {
     Idef idef = idefStack.at(assignArgTabIndex);
     if(idef.type == "NUMBER") {
-      long long int arrayEl = assignArg.mem + stoll(idef.name) + 1;
-      regToMem(arrayEl);
+      long long int arrayEl = assignArg.memory + stoll(idef.name) - assignArg.move + 1;
+      setReg(to_string(arrayEl), 1);
+      regToMem(8);
       removeIdef(idef.name);
     }
     else {
-      regToMem(0);
-      memToReg(assignArg.mem);
-      pushCmd("ADD " + to_ascii(idef.mem));
-      regToMem(2);
-      memToReg(0);
-      pushCmd("STORETAB 2");
+      setReg(to_string(idef.memory),1);
+      memToReg(2);
+      long long int indexFix = assignArg.memory - assignArg.move + 1;
+      setReg(to_string(indexFix),3);
+      pushCmd("ADD B C");
+      pushCmd("COPY A B");
+      regToMem(8);
+      //removeIdef(idef.name);
     }
   }
   else if(assignArg.isLocal == 0) {
-    regToMem(assignArg.mem);
+    setReg(to_string(assignArg.memory), 1);
+    regToMem(8);
   }
   else {
     cout << "Błąd: linia " << yylineno << " - modyfikacji iteratora pętli " << $<str>1 << "\n";
@@ -190,30 +188,33 @@ expression SEMICOLON {
         flagAssign = 0;
         flagWrite = 1;
     } value SEMICOLON {
-        Idef ide = idefStack.at(expressionArgs[0]);
+        Idef idef = idefStack.at(expressionArgs[0]);
 
-        if(ide.type == "NUMBER") {
-            setReg(ide.name, assignArg.mem);
-            removeIdef(ide.name);
+        if(idef.type == "NUMBER") {
+            setReg(idef.name,8);
         }
-        else if (ide.type == "IDENTIFIER") {
-            memToReg(ide.mem);
+        else if (idef.type == "IDENTIFIER") {
+            setReg(to_string(idef.memory),1);
+            memToReg(8);
         }
         else {
-            Idef index = idefStack.at(expArgsTabIndex[0]);
-            if(index.type == "NUMBER") {
-                long long int tabElMem = ide.mem + stoll(index.name) + 1;
-                memToReg(tabElMem);
-                removeIdef(index.name);
+            Idef i = idefStack.at(expArgsTabIndex[0]);
+            if(i.type == "NUMBER") {
+                long long int arrayEl = idef.memory + stoll(i.name) - idef.move + 1;
+                setReg(to_string(arrayEl), 1);
+                memToReg(8);
             }
             else {
-                memToReg(ide.mem);
-                pushCmd("ADD " + to_ascii(ide.mem) + " " + to_ascii(index.mem));
-                pushCmd("STORE 0");
-                pushCmd("LOADTAB 0");
+                setReg(to_string(i.memory),1);
+                memToReg(2);
+                long long int indexFix = idef.memory - idef.move + 1;
+                setReg(to_string(indexFix),3);
+                pushCmd("ADD B C");
+                pushCmd("COPY A B");
+                memToReg(8);
             }
         }
-        pushCmd("PUT " + to_ascii(assignArg.mem));
+        pushCmd("PUT H");
         flagAssign = 1;
         flagWrite = 0;
         expressionArgs[0] = "-1";
@@ -225,24 +226,30 @@ expression:
 value {
   Idef idef = idefStack.at(expressionArgs[0]);
   if(idef.type == "NUMBER") {
-    setReg(idef.name, assignArg.mem);
+    setReg(idef.name, 8);
     removeIdef(idef.name);
   }
   else if(idef.type == "IDENTIFIER") {
-    memToReg(idef.mem);
+    setReg(to_string(idef.memory), 1);
+    memToReg(8);
   }
   else{
     Idef i = idefStack.at(expArgsTabIndex[0]);
     if(i.type == "NUMBER"){
-      long long int memElement = idef.mem + stoll(i.name) + 1;
-      memToReg(memElement);
+      long long int arrayEl = idef.memory + stoll(i.name) - idef.move + 1;
+      setReg(to_string(arrayEl), 1);
+      memToReg(8);
       removeIdef(i.name);
     }
     else{
-       memToReg(idef.mem);
-       pushCmd("ADD " + to_ascii(i.mem));
-       pushCmd("STORE 0");
-       pushCmd("LOADTAB 0");
+       setReg(to_string(i.memory),1);
+       memToReg(2);
+       long long int indexFix = idef.memory - idef.move + 1;
+       setReg(to_string(indexFix),3);
+       pushCmd("ADD B C");
+       pushCmd("COPY A B");
+       memToReg(8);
+       //removeIdef(i.name);
     }
   }
   if (!flagWrite) {
@@ -250,44 +257,8 @@ value {
       expArgsTabIndex[0] = "-1";
   }
 }
-| value ADD value {
-  Idef a = idefStack.at(expressionArgs[0]);
-  Idef b = idefStack.at(expressionArgs[1]);
-  if(a.type != "ARRAY" && b.type != "ARRAY"){
-    add(a, b);
-  }
-  else {
-    Idef aIndex, bIndex;
-    if(idefStack.count(expArgsTabIndex[0]) > 0)
-        aIndex = idefStack.at(expArgsTabIndex[0]);
-    if(idefStack.count(expArgsTabIndex[1]) > 0)
-        bIndex = idefStack.at(expArgsTabIndex[1]);
-    addTab(a, b, aIndex, bIndex);
-    expArgsTabIndex[0] = "-1";
-    expArgsTabIndex[1] = "-1";
-  }
-  expressionArgs[0] = "-1";
-  expressionArgs[1] = "-1";
-}
-| value SUBSTRACT value {
-  Idef a = idefStack.at(expressionArgs[0]);
-  Idef b = idefStack.at(expressionArgs[1]);
-  if(a.type != "ARRAY" && b.type != "ARRAY"){
-    sub(a, b);
-  }
-  else {
-    Idef aIndex, bIndex;
-    if(idefStack.count(expArgsTabIndex[0]) > 0)
-        aIndex = idefStack.at(expArgsTabIndex[0]);
-    if(idefStack.count(expArgsTabIndex[1]) > 0)
-        bIndex = idefStack.at(expArgsTabIndex[1]);
-    subTab(a, b, aIndex, bIndex);
-    expArgsTabIndex[0] = "-1";
-    expArgsTabIndex[1] = "-1";
-  }
-  expressionArgs[0] = "-1";
-  expressionArgs[1] = "-1";
-}
+| value ADD value {}
+| value SUBSTRACT value {}
 | value MULTIPLY value {}
 | value DIVIDE value {}
 | value MOD value {}
@@ -395,7 +366,7 @@ PIDENTIFIER {
     }
     else{
       Idef idef;
-      createIdef(&idef, $3, "NUMBER", 0, 0, 0);
+      createIdef(&idef, $3, "NUMBER", 0, 0, assignArg.move);
       insertIdef($3, idef);
 
       if(!flagAssign){
@@ -419,25 +390,12 @@ PIDENTIFIER {
 %%
 void createIdef(Idef *idef, string name, string type, long long int isLocal, long long int arraySize, long long int move){
     idef->name = name;
-    idef->mem = memCounter;
+    idef->memory = memCounter;
     idef->type = type;
     idef->move = move;
-
-    if(isLocal){
-      idef->isLocal = 1;
-    }
-    else{
-      idef->isLocal = 0;
-    }
-
+    idef->isLocal = isLocal ? 1 : 0;
     idef->isInitialized = 0;
-
-    if(arraySize){
-      idef->arraySize = arraySize;
-    }
-    else{
-      idef->arraySize = 0;
-    }
+    idef->arraySize = arraySize;
 }
 
 void insertIdef(string key, Idef idef) {
@@ -447,7 +405,7 @@ void insertIdef(string key, Idef idef) {
         memCounter++;
     }
     else {
-        idefStack.at(key).counter +=1;;
+        idefStack.at(key).counter +=1;
     }
 }
 
@@ -458,7 +416,6 @@ void removeIdef(string key) {
         }
         else {
             idefStack.erase(key);
-            memCounter--;
         }
     }
 }
@@ -477,25 +434,19 @@ void zeroReg(long long int reg) {
 void binToAsmStack(long long int reg, string bin) {
   long long int maxSize = bin.size();
   for(long long int i = 0; i <= maxSize; i++){
-		if(bin[i] == '1'){
+		if(bin[i] == '1')
 			pushCmd("INC " + to_ascii(reg));
-		}
-		if(i < (maxSize - 1)){
-          pushCmd("ADD " + to_ascii(reg) + " " + to_ascii(reg));
-		}
+		if(i < (maxSize - 1))
+      pushCmd("ADD " + to_ascii(reg) + " " + to_ascii(reg));
 	}
-}
-
-long long int firstFreeReg() {
-  return 50;
 }
 
 void regToMem(long long int reg) {
 	pushCmd("STORE " + to_ascii(reg));
 }
 
-void memToReg(long long int mem) {
-	pushCmd("LOAD " + to_ascii(mem));
+void memToReg(long long int memory) {
+	pushCmd("LOAD " + to_ascii(memory));
 }
 
 void pushCmd(string s) {
@@ -509,24 +460,21 @@ string decToBin(long long int n) {
 }
 
 void printAsm(string outFileName) {
-    ofstream out_code(outFileName);
-	long long int i;
-	for(i = 0; i < asmStack.size(); i++)
+  ofstream out_code(outFileName);
+	for(long long int i = 0; i < asmStack.size(); i++)
         out_code << asmStack.at(i) << endl;
 }
 
 
 void printAsmStack(){
-	long long int i;
-	for(i = 0; i < asmStack.size(); i++)
+	for(long long int i = 0; i < asmStack.size(); i++)
         cout << asmStack.at(i) << endl;
 }
 
 int main(int argv, char* argc[]){
-
   flagAssign = 1;
   flagWrite = 0;
-  memCounter = 5;
+  memCounter = 1;
 
   yyparse();
 
@@ -548,366 +496,22 @@ int yyerror(string str){
 string to_ascii(long long int value) {
   switch( value )
    {
-   case 5:
+   case 1:
        return "A";
-   case 6:
+   case 2:
        return "B";
-   case 7:
+   case 3:
        return "C";
-   case 8:
+   case 4:
        return "D";
-   case 9:
+   case 5:
        return "E";
-   case 10:
+   case 6:
        return "F";
-   case 11:
+   case 7:
        return "G";
-   case 12:
+   case 8:
        return "H";
    }
    return 0;
-}
-
-//======= EXPRESSION FUNCTIONS =========//
-
-void add(Idef a, Idef b) {
-    if(a.type == "NUMBER" && b.type == "NUMBER") {
-        long long int value = stoll(a.name) + stoll(b.name);
-        setReg(to_string(value), assignArg.mem);
-        removeIdef(a.name);
-        removeIdef(b.name);
-    }
-    else if(a.type == "NUMBER" && b.type == "IDENTIFIER") {
-        if(stoll(a.name) < 15){
-            memToReg(b.mem);
-            for(int i=0; i < stoll(a.name); i++) {
-                pushCmd("INC " + to_ascii(b.mem));
-            }
-            pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(b.mem));
-            removeIdef(a.name);
-        }
-        else {
-            setReg(a.name, a.mem);
-            pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(b.mem));
-            pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(a.mem));
-            removeIdef(a.name);
-        }
-    }
-    else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
-        if(stoll(b.name) < 15){
-            memToReg(a.mem);
-            for(int i=0; i < stoll(b.name); i++) {
-                pushCmd("INC " + to_ascii(a.mem));
-            }
-            pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(a.mem));
-            removeIdef(b.name);
-        }
-        else {
-            setReg(b.name, b.mem);
-            pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(a.mem));
-            pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(b.mem));
-            removeIdef(b.name);
-        }
-    }
-    else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
-        if(a.name == b.name) {
-            memToReg(a.mem);
-            pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(a.mem));
-        }
-        else {
-            memToReg(a.mem);
-            pushCmd("ADD " + to_ascii(a.mem) + " " +  to_ascii(b.mem));
-        }
-        pushCmd("COPY " + to_ascii(assignArg.mem) + " " + to_ascii(a.mem));
-    }
-}
-
-void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
-  if(a.type == "NUMBER" && b.type == "ARRAY") {
-      if(bIndex.type == "NUMBER") {
-          long long int addres = b.mem + stoll(bIndex.name) + 1;
-          if(stoll(a.name) < 10) {
-              memToReg(addres);
-              for(int i=0; i < stoll(a.name); i++) {
-                  pushCmd("INC " + to_ascii(b.mem));
-              }
-          }
-          else {
-              setReg(a.name, a.mem);
-              pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(addres));
-          }
-          removeIdef(a.name);
-          removeIdef(bIndex.name);
-      }
-      else if(bIndex.type == "IDENTIFIER") {
-          memToReg(b.mem);
-          pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
-          regToMem(1);
-          if(stoll(a.name) < 10) {
-              pushCmd("LOADTAB 1");
-              for(int i=0; i < stoll(a.name); i++) {
-                pushCmd("INC " + to_ascii(b.mem));
-              }
-          }
-          else {
-              setReg(a.name, a.mem);
-              pushCmd("ADDTAB 1");
-          }
-          removeIdef(a.name);
-      }
-  }
-  else if(a.type == "ARRAY" && b.type == "NUMBER") {
-      if(aIndex.type == "NUMBER") {
-          long long int addres = a.mem + stoll(aIndex.name) + 1;
-          if(stoll(b.name) < 10) {
-              memToReg(addres);
-              for(int i=0; i < stoll(b.name); i++) {
-                  pushCmd("INC " + to_ascii(a.mem));
-              }
-          }
-          else {
-              setReg(b.name, b.mem);
-              pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(addres));
-          }
-          removeIdef(b.name);
-          removeIdef(aIndex.name);
-      }
-      else if(aIndex.type == "IDENTIFIER") {
-          memToReg(a.mem);
-          pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
-          regToMem(1);
-          if(stoll(b.name) < 10){
-              pushCmd("LOADTAB 1");
-              for(int i=0; i < stoll(b.name); i++) {
-                  pushCmd("INC " + to_ascii(a.mem));
-              }
-          }
-          else {
-              setReg(b.name, b.mem);
-              pushCmd("ADDTAB 1");
-          }
-          removeIdef(b.name);
-      }
-  }
-  else if(a.type == "IDENTIFIER" && b.type == "ARRAY") {
-      if(bIndex.type == "NUMBER") {
-          long long int addres = b.mem + stoll(bIndex.name) + 1;
-          memToReg(a.mem);
-          pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(addres));
-          removeIdef(bIndex.name);
-      }
-      else if(bIndex.type == "IDENTIFIER") {
-          memToReg(b.mem);
-          pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
-          regToMem(1);
-          memToReg(a.mem);
-          pushCmd("ADDTAB 1");
-      }
-  }
-  else if(a.type == "ARRAY" && b.type == "IDENTIFIER") {
-      if(aIndex.type == "NUMBER") {
-          long long int addres = a.mem + stoll(aIndex.name) + 1;
-          memToReg(b.mem);
-          pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(addres));
-          removeIdef(aIndex.name);
-      }
-      else if(aIndex.type == "IDENTIFIER") {
-          memToReg(a.mem);
-          pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
-          regToMem(1);
-          memToReg(b.mem);
-          pushCmd("ADDTAB 1");
-      }
-  }
-  else if(a.type == "ARRAY" && b.type == "ARRAY") {
-      if(aIndex.type == "NUMBER" && bIndex.type == "NUMBER") {
-          long long int Aaddres = a.mem + stoll(aIndex.name) + 1;
-          long long int Baddres = b.mem + stoll(bIndex.name) + 1;
-          memToReg(Aaddres);
-          pushCmd("ADD " + to_ascii(Aaddres) + " " + to_ascii(Baddres));
-          removeIdef(aIndex.name);
-          removeIdef(bIndex.name);
-      }
-      else if(aIndex.type == "NUMBER" && bIndex.type == "IDENTIFIER") {
-          long long int addres = a.mem + stoll(aIndex.name) + 1;
-          memToReg(b.mem);
-          pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
-          regToMem(1);
-          memToReg(addres);
-          pushCmd("ADDTAB 1");
-          removeIdef(aIndex.name);
-      }
-      else if(aIndex.type == "IDENTIFIER" && bIndex.type == "NUMBER") {
-          long long int addres = b.mem + stoll(bIndex.name) + 1;
-          memToReg(a.mem);
-          pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
-          regToMem(1);
-          memToReg(addres);
-          pushCmd("ADDTAB 1");
-          removeIdef(bIndex.name);
-      }
-      else if(aIndex.type == "IDENTIFIER" && bIndex.type == "IDENTIFIER") {
-          if(a.name == b.name && aIndex.name == bIndex.name) {
-              memToReg(a.mem);
-              pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
-              regToMem(1);
-              pushCmd("LOADTAB 1");
-              pushCmd("ADD " + to_ascii(1) + " " + to_ascii(1));
-          }
-          else {
-              memToReg(a.mem);
-              pushCmd("ADD " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
-              regToMem(1);
-              memToReg(b.mem);
-              pushCmd("ADD " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
-              regToMem(0);
-              pushCmd("LOADTAB 1");
-              pushCmd("ADDTAB 0");
-          }
-      }
-  }
-}
-
-void sub(Idef a, Idef b) {
-    if(a.type == "NUMBER" && b.type == "NUMBER") {
-        long long int value = max(stoll(a.name) - stoll(b.name), (long long int) 0);
-        setReg(to_ascii(value), firstFreeReg());
-        removeIdef(a.name);
-        removeIdef(b.name);
-    }
-    else if(a.type == "NUMBER" && b.type == "IDENTIFIER") {
-        setReg(a.name, a.mem);
-        pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(b.mem));
-        removeIdef(a.name);
-    }
-    else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
-        setReg(b.name, b.mem);
-        pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(b.mem));
-        removeIdef(b.name);
-    }
-    else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
-        memToReg(a.mem);
-        pushCmd("SUB " + to_ascii(a.mem) + " " +  to_ascii(a.mem));
-    }
-}
-
-void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
-  if(a.type == "NUMBER" && b.type == "ARRAY") {
-      if(bIndex.type == "NUMBER") {
-          long long int addres = b.mem + stoll(bIndex.name) + 1;
-          setReg(a.name, a.mem);
-          pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(addres));
-          removeIdef(a.name);
-          removeIdef(bIndex.name);
-      }
-      else if(bIndex.type == "IDENTIFIER") {
-          memToReg(b.mem);
-          pushCmd("SUB " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
-          regToMem(1);
-          setReg(a.name, a.mem);
-          pushCmd("SUBTAB 1");
-          removeIdef(a.name);
-      }
-  }
-  else if(a.type == "ARRAY" && b.type == "NUMBER") {
-      if(aIndex.type == "NUMBER") {
-          long long int addres = a.mem + stoll(aIndex.name) + 1;
-          setReg(b.name, b.mem);
-          pushCmd("SUB " + to_ascii(addres) + " " + to_ascii(b.mem));
-          removeIdef(b.name);
-          removeIdef(aIndex.name);
-      }
-      else if(aIndex.type == "IDENTIFIER") {
-          memToReg(a.mem);
-          pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
-          regToMem(1);
-          setReg(b.name, b.mem);
-          pushCmd("SUBTAB 1");
-          removeIdef(b.name);
-      }
-  }
-  else if(a.type == "IDENTIFIER" && b.type == "ARRAY") {
-      if(bIndex.type == "NUMBER") {
-          long long int addres = b.mem + stoll(bIndex.name) + 1;
-          memToReg(a.mem);
-          pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(addres));
-          removeIdef(bIndex.name);
-      }
-      else if(bIndex.type == "IDENTIFIER") {
-          memToReg(b.mem);
-          pushCmd("SUB " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
-          regToMem(1);
-          memToReg(a.mem);
-          pushCmd("SUBTAB 1");
-      }
-  }
-  else if(a.type == "ARRAY" && b.type == "IDENTIFIER") {
-      if(aIndex.type == "NUMBER") {
-          long long int addres = a.mem + stoll(aIndex.name) + 1;
-          memToReg(b.mem);
-          pushCmd("SUB " + to_ascii(addres) + " " + to_ascii(b.mem));
-          removeIdef(aIndex.name);
-      }
-      else if(aIndex.type == "IDENTIFIER") {
-          memToReg(a.mem);
-          pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
-          regToMem(1);
-          memToReg(b.mem);
-          pushCmd("SUBTAB 1");
-      }
-  }
-  else if(a.type == "ARRAY" && b.type == "ARRAY") {
-      if(aIndex.type == "NUMBER" && bIndex.type == "NUMBER") {
-          long long int Aaddres = a.mem + stoll(aIndex.name) + 1;
-          long long int Baddres = b.mem + stoll(bIndex.name) + 1;
-          if(a.name == b.name && Aaddres == Baddres) {
-              memToReg(Aaddres);
-              pushCmd("SUB " + to_ascii(Aaddres) + " " + to_ascii(Aaddres));
-          }
-          else {
-              memToReg(Aaddres);
-              pushCmd("SUB " + to_ascii(Aaddres) + " " + to_ascii(Baddres));
-          }
-          removeIdef(aIndex.name);
-          removeIdef(bIndex.name);
-      }
-      else if(aIndex.type == "NUMBER" && bIndex.type == "IDENTIFIER") {
-          long long int addres = a.mem + stoll(aIndex.name) + 1;
-          memToReg(b.mem);
-          pushCmd("SUB " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
-          regToMem(1);
-          memToReg(addres);
-          pushCmd("SUBTAB 1");
-          removeIdef(aIndex.name);
-      }
-      else if(aIndex.type == "IDENTIFIER" && bIndex.type == "NUMBER") {
-          long long int addres = b.mem + stoll(bIndex.name) + 1;
-          memToReg(a.mem);
-          pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
-          regToMem(1);
-          memToReg(addres);
-          pushCmd("SUBTAB 1");
-          removeIdef(bIndex.name);
-      }
-      else if(aIndex.type == "IDENTIFIER" && bIndex.type == "IDENTIFIER") {
-          if(a.name == b.name && aIndex.name == bIndex.name) {
-              memToReg(a.mem);
-              pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
-              regToMem(1);
-              pushCmd("LOADTAB 1");
-              long long int temp = firstFreeReg();
-              pushCmd("SUB " + to_ascii(1) + " " + to_ascii(1));
-          }
-          else {
-              memToReg(a.mem);
-              pushCmd("SUB " + to_ascii(a.mem) + " " + to_ascii(aIndex.mem));
-              regToMem(1);
-              memToReg(b.mem);
-              pushCmd("SUB " + to_ascii(b.mem) + " " + to_ascii(bIndex.mem));
-              regToMem(0);
-              pushCmd("LOADTAB 1");
-              pushCmd("SUBTAB 0");
-          }
-      }
-  }
 }
