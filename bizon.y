@@ -562,9 +562,114 @@ value EQUAL value {
     expressionArgs[0] = "-1";
     expressionArgs[1] = "-1";
   }
-| value RIGHTINEQUAL value {}
-| value LEFTINEQUALEQUAL value {}
-| value RIGHTINEQUALEQUAL value {}
+| value RIGHTINEQUAL value {
+  Idef a = idefStack.at(expressionArgs[0]);
+  Idef b = idefStack.at(expressionArgs[1]);
+  if(a.type == "NUMBER" && b.type == "NUMBER") {
+      if(stoll(a.name) > stoll(b.name))
+          setReg("1", assignArg.memory);
+      else
+          setReg("0", assignArg.memory);
+
+      removeIdef(a.name);
+      removeIdef(b.name);
+    }
+    else {
+        if(a.type != "ARRAY" && b.type != "ARRAY")
+            sub(a, b, 0, 1);
+        else {
+            Idef aI, bI;
+            if(idefStack.count(expArgsTabIndex[0]) > 0)
+                aI = idefStack.at(expArgsTabIndex[0]);
+            if(idefStack.count(expArgsTabIndex[1]) > 0)
+                bI = idefStack.at(expArgsTabIndex[1]);
+            subTab(a, b, aI, bI, 0, 1);
+            expArgsTabIndex[0] = "-1";
+            expArgsTabIndex[1] = "-1";
+        }
+        pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
+    }
+
+    Jump j;
+    createJump(&j, asmStack.size(), depth);
+    jumpStack.push_back(j);
+    pushCmd("JZERO " + to_ascii(assignArg.memory));
+
+    expressionArgs[0] = "-1";
+    expressionArgs[1] = "-1";
+  }
+| value LEFTINEQUALEQUAL value {
+  Idef a = idefStack.at(expressionArgs[0]);
+  Idef b = idefStack.at(expressionArgs[1]);
+  if(a.type == "NUMBER" && b.type == "NUMBER") {
+      if(stoll(a.name) < stoll(b.name))
+          setReg("1", assignArg.memory);
+      else
+          setReg("0", assignArg.memory);
+
+      removeIdef(a.name);
+      removeIdef(b.name);
+    }
+    else {
+        if(a.type != "ARRAY" && b.type != "ARRAY")
+            sub(b, a, 1, 1);
+        else {
+            Idef aI, bI;
+            if(idefStack.count(expArgsTabIndex[0]) > 0)
+                aI = idefStack.at(expArgsTabIndex[0]);
+            if(idefStack.count(expArgsTabIndex[1]) > 0)
+                bI = idefStack.at(expArgsTabIndex[1]);
+            subTab(b, a, bI, aI, 1, 1);
+            expArgsTabIndex[0] = "-1";
+            expArgsTabIndex[1] = "-1";
+        }
+        pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
+    }
+
+    Jump j;
+    createJump(&j, asmStack.size(), depth);
+    jumpStack.push_back(j);
+    pushCmd("JZERO " + to_ascii(assignArg.memory));
+
+    expressionArgs[0] = "-1";
+    expressionArgs[1] = "-1";
+  }
+| value RIGHTINEQUALEQUAL value {
+  Idef a = idefStack.at(expressionArgs[0]);
+  Idef b = idefStack.at(expressionArgs[1]);
+  if(a.type == "NUMBER" && b.type == "NUMBER") {
+      if(stoll(a.name) < stoll(b.name))
+          setReg("1", assignArg.memory);
+      else
+          setReg("0", assignArg.memory);
+
+      removeIdef(a.name);
+      removeIdef(b.name);
+    }
+    else {
+        if(a.type != "ARRAY" && b.type != "ARRAY")
+            sub(a, b, 1, 1);
+        else {
+            Idef aI, bI;
+            if(idefStack.count(expArgsTabIndex[0]) > 0)
+                aI = idefStack.at(expArgsTabIndex[0]);
+            if(idefStack.count(expArgsTabIndex[1]) > 0)
+                bI = idefStack.at(expArgsTabIndex[1]);
+            subTab(a, b, aI, bI, 1, 1);
+            expArgsTabIndex[0] = "-1";
+            expArgsTabIndex[1] = "-1";
+        }
+        pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
+    }
+
+    Jump j;
+    createJump(&j, asmStack.size(), depth);
+    jumpStack.push_back(j);
+    pushCmd("JZERO " + to_ascii(assignArg.memory));
+
+    expressionArgs[0] = "-1";
+    expressionArgs[1] = "-1";
+  }
 ;
 
 value:
