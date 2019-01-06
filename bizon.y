@@ -38,6 +38,7 @@
   map<string, Idef> idefStack;
   vector<string> asmStack;
   vector<Jump> jumpStack;
+  vector<Idef> forStack;
 
   int flagAssign;
   int flagWrite;
@@ -203,10 +204,75 @@ expression SEMICOLON {
     } condition {
         flagAssign = 1;
     } THEN commands ifbody
-| WHILE condition DO commands ENDWHILE {}
-| DO commands WHILE condition ENDDO {}
-| FOR PIDENTIFIER FROM value TO value DO commands ENDFOR {}
-| FOR PIDENTIFIER FROM value DOWNTO value DO commands ENDFOR {}
+| DO {
+      depth++;
+      Jump j;
+      createJump(&j, asmStack.size(), depth);
+      jumpStack.push_back(j);
+    } commands WHILE {
+        flagAssign = 0;
+    } condition ENDDO {
+      long long int stack;
+      long long int jumpCount = jumpStack.size()-1;
+      if(jumpCount > 2 && jumpStack.at(jumpCount-2).depth == depth) {
+        stack = jumpStack.at(jumpCount-2).placeInStack;
+        pushCmd("JUMP " + to_string(stack));
+        addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
+        addInt(jumpStack.at(jumpCount-1).placeInStack, asmStack.size());
+        jumpStack.pop_back();
+      }
+      else {
+        stack = jumpStack.at(jumpCount-1).placeInStack;
+        pushCmd("JUMP " + to_string(stack));
+        addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
+      }
+      jumpStack.pop_back();
+      jumpStack.pop_back();
+      depth--;
+    }
+| WHILE {
+        flagAssign = 0;
+        depth++;
+        Jump j;
+        createJump(&j, asmStack.size(), depth);
+        jumpStack.push_back(j);
+    } condition {
+        flagAssign = 1;
+    } DO commands ENDWHILE {
+        long long int stack;
+        long long int jumpCount = jumpStack.size()-1;
+        if(jumpCount > 2 && jumpStack.at(jumpCount-2).depth == depth) {
+            stack = jumpStack.at(jumpCount-2).placeInStack;
+            pushCmd("JUMP " + to_string(stack));
+            addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpCount-1).placeInStack, asmStack.size());
+            jumpStack.pop_back();
+        }
+        else {
+            stack = jumpStack.at(jumpCount-1).placeInStack;
+            pushCmd("JUMP " + to_string(stack));
+            addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
+        }
+        jumpStack.pop_back();
+        jumpStack.pop_back();
+
+        depth--;
+        flagAssign = 1;
+    }
+| FOR PIDENTIFIER {
+        if(idefStack.find($2)!=idefStack.end()) {
+            cout << "Błąd: linia " << yylineno << " - Redundancja zmiennej " << $<str>2 << "." << endl;
+            exit(1);
+        }
+        else {
+            Idef s;
+            createIdef(&s, $2, "IDENTIFIER", 1, 0, 0);
+            insertIdef($2, s);
+        }
+        flagAssign = 0;
+        assignArg = idefStack.at($2);
+        depth++;
+    } FROM value forbody
 | READ identifier SEMICOLON {}
 |  WRITE {
         flagAssign = 0;
@@ -281,11 +347,104 @@ ifbody:
             jumpStack.pop_back();
         }
         jumpStack.pop_back();
-        /*registerValue = -1;*/
         depth--;
         flagAssign = 1;
     }
 ;
+
+forbody:
+    DOWNTO value DO {
+    } commands ENDFOR {
+    }
+    |   TO value DO {
+
+            Idef a = idefStack.at(expressionArgs[0]);
+            Idef b = idefStack.at(expressionArgs[1]);
+
+            if(a.type == "NUMBER") {
+                setReg(a.name, 8);
+            }
+            else if(a.type == "IDENTIFIER") {
+                setReg(to_string(a.memory), 1);
+                memToReg(8);
+            }
+            else {
+            }
+            setReg(to_string(assignArg.memory),1);
+            regToMem(8);
+            idefStack.at(assignArg.name).isInitialized = 1;
+
+            if(a.type != "ARRAY" && b.type != "ARRAY") {
+                sub(b, a, 1, 1);
+              }
+            else {
+                Idef aI, bI;
+                if(idefStack.count(expArgsTabIndex[0]) > 0)
+                    aI = idefStack.at(expArgsTabIndex[0]);
+                if(idefStack.count(expArgsTabIndex[1]) > 0)
+                    bI = idefStack.at(expArgsTabIndex[1]);
+                subTab(b, a, bI, aI, 1, 1);
+                expArgsTabIndex[0] = "-1";
+                expArgsTabIndex[1] = "-1";
+            }
+            expressionArgs[0] = "-1";
+            expressionArgs[1] = "-1";
+
+            Idef s;
+            string name = "C" + to_string(depth);
+            createIdef(&s, name, "IDENTIFIER", 1, 0, 0);
+            insertIdef(name, s);
+            setReg(to_string(idefStack.at(name).memory),1);
+            regToMem(8);
+
+
+            forStack.push_back(idefStack.at(assignArg.name));
+
+            Jump j;
+            createJump(&j, asmStack.size(), depth);
+            jumpStack.push_back(j);
+
+            setReg(to_string(idefStack.at(name).memory),1);
+            memToReg(7);
+
+            Jump jj;
+            createJump(&jj, asmStack.size(), depth);
+            jumpStack.push_back(jj);
+
+            pushCmd("JZERO G");
+            pushCmd("DEC G");
+            regToMem(7);
+
+
+            flagAssign = 1;
+
+        } commands ENDFOR {
+            Idef iterator = forStack.at(forStack.size()-1);
+            setReg(to_string(iterator.memory),1);
+            memToReg(2);
+            pushCmd("INC B");
+            regToMem(2);
+
+            long long int jumpCount = jumpStack.size()-2;
+            long long int stack = jumpStack.at(jumpCount).placeInStack;
+
+            long long int jumpCount2 = jumpStack.size()-1;
+            long long int stack2 = jumpStack.at(jumpCount2).placeInStack;
+
+            pushCmd("JUMP " + to_string(stack));
+            addInt(stack2, asmStack.size());
+            jumpStack.pop_back();
+            jumpStack.pop_back();
+
+            string name = "C" + to_string(depth);
+            removeIdef(name);
+            removeIdef(iterator.name);
+            forStack.pop_back();
+
+            depth--;
+            flagAssign = 1;
+        }
+    ;
 
 expression:
 value {
@@ -462,8 +621,9 @@ value EQUAL value {
       pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
 
       pushCmd("JZERO " + to_ascii(assignArg.memory) + " " + to_string(asmStack.size()+2));
-      createJump(&j, asmStack.size(), depth);
-      jumpStack.push_back(j);
+      Jump jj;
+      createJump(&jj, asmStack.size(), depth);
+      jumpStack.push_back(jj);
       pushCmd("JUMP");
   }
   expArgsTabIndex[0] = "-1";
@@ -516,9 +676,9 @@ value EQUAL value {
 
       addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size()+1);
       jumpStack.pop_back();
-
-      createJump(&j, asmStack.size(), depth);
-      jumpStack.push_back(j);
+      Jump jj;
+      createJump(&jj, asmStack.size(), depth);
+      jumpStack.push_back(jj);
       pushCmd("JZERO " + to_ascii(assignArg.memory));
   }
   expArgsTabIndex[0] = "-1";
