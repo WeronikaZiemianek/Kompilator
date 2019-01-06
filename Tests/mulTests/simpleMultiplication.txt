@@ -1,0 +1,9 @@
+DECLARE
+a;
+b;
+IN
+a:=7*3;
+b:=3*7;
+WRITE a;
+WRITE b;
+END

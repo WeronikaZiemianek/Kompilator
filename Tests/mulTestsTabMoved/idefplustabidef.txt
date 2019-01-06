@@ -1,0 +1,12 @@
+DECLARE
+a(6:17);
+b;
+c;
+d;
+IN
+a(7):=3;
+b:=13;
+c:=7;
+d:=b*a(c);
+WRITE d;
+END

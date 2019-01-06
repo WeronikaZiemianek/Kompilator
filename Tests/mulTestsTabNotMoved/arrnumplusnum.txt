@@ -1,0 +1,8 @@
+DECLARE
+a(0:17);
+b;
+IN
+a(7):=13;
+b:=a(7)*3;
+WRITE b;
+END

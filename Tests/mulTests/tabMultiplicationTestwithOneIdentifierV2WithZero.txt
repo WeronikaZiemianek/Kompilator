@@ -1,0 +1,11 @@
+DECLARE
+a;
+b;
+c;
+IN
+a:=7;
+b:=0*a;
+c:=a*0;
+WRITE b;
+WRITE c;
+END
