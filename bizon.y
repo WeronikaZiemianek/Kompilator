@@ -421,7 +421,7 @@ condition:
 value EQUAL value {
   Idef a = idefStack.at(expressionArgs[0]);
   Idef b = idefStack.at(expressionArgs[1]);
-  if(a.type == "NUM" && b.type == "NUM") {
+  if(a.type == "NUMBER" && b.type == "NUMBER") {
       if(stoll(a.name) == stoll(b.name))
           setReg("1", assignArg.memory);
       else
@@ -474,7 +474,7 @@ value EQUAL value {
 | value NOTEQUAL value {
   Idef a = idefStack.at(expressionArgs[0]);
   Idef b = idefStack.at(expressionArgs[1]);
-  if(a.type == "NUM" && b.type == "NUM") {
+  if(a.type == "NUMBER" && b.type == "NUMBER") {
       if(stoll(a.name) != stoll(b.name))
           setReg("1", assignArg.memory);
       else
@@ -526,7 +526,42 @@ value EQUAL value {
   expressionArgs[0] = "-1";
   expressionArgs[1] = "-1";
 }
-| value LEFTINEQUAL value {}
+| value LEFTINEQUAL value {
+  Idef a = idefStack.at(expressionArgs[0]);
+  Idef b = idefStack.at(expressionArgs[1]);
+  if(a.type == "NUMBER" && b.type == "NUMBER") {
+      if(stoll(a.name) < stoll(b.name))
+          setReg("1", assignArg.memory);
+      else
+          setReg("0", assignArg.memory);
+
+      removeIdef(a.name);
+      removeIdef(b.name);
+    }
+    else {
+        if(a.type != "ARRAY" && b.type != "ARRAY")
+            sub(b, a, 0, 1);
+        else {
+            Idef aI, bI;
+            if(idefStack.count(expArgsTabIndex[0]) > 0)
+                aI = idefStack.at(expArgsTabIndex[0]);
+            if(idefStack.count(expArgsTabIndex[1]) > 0)
+                bI = idefStack.at(expArgsTabIndex[1]);
+            subTab(b, a, bI, aI, 0, 1);
+            expArgsTabIndex[0] = "-1";
+            expArgsTabIndex[1] = "-1";
+        }
+        pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
+    }
+
+    Jump j;
+    createJump(&j, asmStack.size(), depth);
+    jumpStack.push_back(j);
+    pushCmd("JZERO " + to_ascii(assignArg.memory));
+
+    expressionArgs[0] = "-1";
+    expressionArgs[1] = "-1";
+  }
 | value RIGHTINEQUAL value {}
 | value LEFTINEQUALEQUAL value {}
 | value RIGHTINEQUALEQUAL value {}
@@ -1138,11 +1173,10 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addr),1);
             memToReg(8);
-<<<<<<< HEAD
+
             if(isINC)
                 pushCmd("INC H");
-=======
->>>>>>> c310b9d4b653157877248960627de367760e79b9
+
             setReg(to_string(b.memory),1);
             memToReg(2);
             pushCmd("SUB H B");
@@ -1162,11 +1196,10 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             }
             pushCmd("COPY A B");
             memToReg(8);
-<<<<<<< HEAD
+
             if(isINC)
                 pushCmd("INC H");
-=======
->>>>>>> c310b9d4b653157877248960627de367760e79b9
+
             setReg(to_string(b.memory),1);
             memToReg(2);
             pushCmd("SUB H B");
@@ -1192,11 +1225,10 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addrA),1);
             memToReg(8);
-<<<<<<< HEAD
+
             if(isINC)
                 pushCmd("INC H");
-=======
->>>>>>> c310b9d4b653157877248960627de367760e79b9
+
             setReg(to_string(bIndex.memory),1);
             memToReg(2);
             long long int indexFix = b.memory - b.move + 1;
@@ -1227,11 +1259,10 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
           }
           pushCmd("COPY A H");
           memToReg(8);
-<<<<<<< HEAD
+
           if(isINC)
               pushCmd("INC H");
-=======
->>>>>>> c310b9d4b653157877248960627de367760e79b9
+
           pushCmd("SUB H B");
           if(isRemoval)
               removeIdef(bIndex.name);
