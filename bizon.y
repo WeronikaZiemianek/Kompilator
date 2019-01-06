@@ -629,16 +629,16 @@ void add(Idef a, Idef b) {
     }
     else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
         setReg(to_string(a.memory),1);
-        memToReg(2);
-        setReg(b.name, 8);
+        memToReg(8);
+        setReg(b.name, 2);
         pushCmd("ADD H B");
         removeIdef(b.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
         setReg(to_string(a.memory),1);
-        memToReg(2);
-        setReg(to_string(b.memory),1);
         memToReg(8);
+        setReg(to_string(b.memory),1);
+        memToReg(2);
         pushCmd("ADD H B");
     }
 }
@@ -658,7 +658,11 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           memToReg(2);
           long long int indexFix = b.memory - b.move + 1;
           setReg(to_string(indexFix),3);
-          pushCmd("SUB B C");
+          if(indexFix<0){
+            pushCmd("SUB B C");
+          }else{
+            pushCmd("ADD B C");
+          }
           pushCmd("COPY A B");
           memToReg(2);
           setReg(a.name, 8);
@@ -670,8 +674,8 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
         if(aIndex.type == "NUMBER") {
             long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addr),1);
-            memToReg(2);
-            setReg(b.name, 8);
+            memToReg(8);
+            setReg(b.name, 2);
             pushCmd("ADD H B");
             removeIdef(b.name);
         }
@@ -680,10 +684,14 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             memToReg(2);
             long long int indexFix = a.memory - a.move + 1;
             setReg(to_string(indexFix),3);
-            pushCmd("SUB B C");
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
             pushCmd("COPY A B");
-            memToReg(2);
-            setReg(b.name, 8);
+            memToReg(8);
+            setReg(b.name, 2);
             pushCmd("ADD H B");
             removeIdef(b.name);
         }
@@ -702,7 +710,11 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             memToReg(2);
             long long int indexFix = b.memory - b.move + 1;
             setReg(to_string(indexFix),3);
-            pushCmd("SUB B C");
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
             pushCmd("COPY A B");
             memToReg(2);
             setReg(to_string(a.memory),1);
@@ -714,21 +726,26 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
         if(aIndex.type == "NUMBER") {
             long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addr),1);
-            memToReg(2);
-            setReg(to_string(b.memory),1);
             memToReg(8);
+            setReg(to_string(b.memory),1);
+            memToReg(2);
             pushCmd("ADD H B");
         }
         else if(aIndex.type == "IDENTIFIER") {
             setReg(to_string(aIndex.memory),1);
             memToReg(2);
+
             long long int indexFix = a.memory - a.move + 1;
             setReg(to_string(indexFix),3);
-            pushCmd("SUB B C");
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
             pushCmd("COPY A B");
-            memToReg(2);
-            setReg(to_string(b.memory),1);
             memToReg(8);
+            setReg(to_string(b.memory),1);
+            memToReg(2);
             pushCmd("ADD H B");
         }
     }
@@ -737,9 +754,9 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
             long long int addrB = b.memory + stoll(bIndex.name) - b.move + 1;
             setReg(to_string(addrA),1);
-            memToReg(2);
-            setReg(to_string(addrB),1);
             memToReg(8);
+            setReg(to_string(addrB),1);
+            memToReg(2);
             pushCmd("ADD H B");
             removeIdef(aIndex.name);
             removeIdef(bIndex.name);
@@ -747,16 +764,18 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
         else if(aIndex.type == "NUMBER" && bIndex.type == "IDENTIFIER") {
             long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addrA),1);
-            memToReg(2);
-
-            setReg(to_string(bIndex.memory),1);
             memToReg(8);
+            setReg(to_string(bIndex.memory),1);
+            memToReg(2);
             long long int indexFix = b.memory - b.move + 1;
             setReg(to_string(indexFix),3);
-            pushCmd("SUB H C");
-            pushCmd("COPY A H");
-            memToReg(8);
-
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
+            pushCmd("COPY A B");
+            memToReg(2);
             pushCmd("ADD H B");
             removeIdef(aIndex.name);
         }
@@ -764,16 +783,17 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           long long int addrB = b.memory + stoll(bIndex.name) - b.move + 1;
           setReg(to_string(addrB),1);
           memToReg(2);
-
           setReg(to_string(aIndex.memory),1);
           memToReg(8);
           long long int indexFix = a.memory - a.move + 1;
           setReg(to_string(indexFix),3);
-
-          pushCmd("SUB H C");
+          if(indexFix<0){
+            pushCmd("SUB H C");
+          }else{
+            pushCmd("ADD H C");
+          }
           pushCmd("COPY A H");
           memToReg(8);
-
           pushCmd("ADD H B");
           removeIdef(bIndex.name);
         }
@@ -782,7 +802,11 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           memToReg(2);
           long long int indexFix = b.memory - b.move + 1;
           setReg(to_string(indexFix),3);
-          pushCmd("ADD B C");
+          if(indexFix<0){
+            pushCmd("SUB B C");
+          }else{
+            pushCmd("ADD B C");
+          }
           pushCmd("COPY A B");
           memToReg(2);
 
@@ -790,7 +814,11 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           memToReg(8);
           indexFix = a.memory - a.move + 1;
           setReg(to_string(indexFix),3);
-          pushCmd("SUB H C");
+          if(indexFix<0){
+            pushCmd("SUB H C");
+          }else{
+            pushCmd("ADD H C");
+          }
           pushCmd("COPY A H");
           memToReg(8);
 
@@ -844,7 +872,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           memToReg(2);
           long long int indexFix = b.memory - b.move + 1;
           setReg(to_string(indexFix),3);
-          pushCmd("SUB B C");
+          if(indexFix<0){
+            pushCmd("SUB B C");
+          }else{
+            pushCmd("ADD B C");
+          }
           pushCmd("COPY A B");
           memToReg(2);
           setReg(a.name, 8);
@@ -863,10 +895,14 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
         }
         else if(aIndex.type == "IDENTIFIER") {
             setReg(to_string(aIndex.memory),1);
-            memToReg(8);
+            memToReg(2);
             long long int indexFix = a.memory - a.move + 1;
             setReg(to_string(indexFix),3);
-            pushCmd("SUB B C");
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
             pushCmd("COPY A B");
             memToReg(8);
             setReg(b.name, 2);
@@ -888,7 +924,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             memToReg(2);
             long long int indexFix = b.memory - b.move + 1;
             setReg(to_string(indexFix),3);
-            pushCmd("SUB B C");
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
             pushCmd("COPY A B");
             memToReg(2);
             setReg(to_string(a.memory),1);
@@ -900,21 +940,26 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
         if(aIndex.type == "NUMBER") {
             long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addr),1);
-            memToReg(2);
-            setReg(to_string(b.memory),1);
             memToReg(8);
+            setReg(to_string(b.memory),1);
+            memToReg(2);
             pushCmd("SUB H B");
         }
         else if(aIndex.type == "IDENTIFIER") {
             setReg(to_string(aIndex.memory),1);
             memToReg(2);
+
             long long int indexFix = a.memory - a.move + 1;
             setReg(to_string(indexFix),3);
-            pushCmd("SUB B C");
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
             pushCmd("COPY A B");
-            memToReg(2);
-            setReg(to_string(b.memory),1);
             memToReg(8);
+            setReg(to_string(b.memory),1);
+            memToReg(2);
             pushCmd("SUB H B");
         }
     }
@@ -934,15 +979,17 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addrA),1);
             memToReg(8);
-
             setReg(to_string(bIndex.memory),1);
             memToReg(2);
             long long int indexFix = b.memory - b.move + 1;
             setReg(to_string(indexFix),3);
-            pushCmd("ADD H C");
-            pushCmd("COPY A H");
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
+            pushCmd("COPY A B");
             memToReg(2);
-
             pushCmd("SUB H B");
             removeIdef(aIndex.name);
         }
@@ -950,16 +997,17 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           long long int addrB = b.memory + stoll(bIndex.name) - b.move + 1;
           setReg(to_string(addrB),1);
           memToReg(2);
-
           setReg(to_string(aIndex.memory),1);
           memToReg(8);
           long long int indexFix = a.memory - a.move + 1;
           setReg(to_string(indexFix),3);
-
-          pushCmd("ADD H C");
+          if(indexFix<0){
+            pushCmd("SUB H C");
+          }else{
+            pushCmd("ADD H C");
+          }
           pushCmd("COPY A H");
           memToReg(8);
-
           pushCmd("SUB H B");
           removeIdef(bIndex.name);
         }
@@ -968,7 +1016,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           memToReg(2);
           long long int indexFix = b.memory - b.move + 1;
           setReg(to_string(indexFix),3);
-          pushCmd("ADD B C");
+          if(indexFix<0){
+            pushCmd("SUB B C");
+          }else{
+            pushCmd("ADD B C");
+          }
           pushCmd("COPY A B");
           memToReg(2);
 
@@ -976,7 +1028,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           memToReg(8);
           indexFix = a.memory - a.move + 1;
           setReg(to_string(indexFix),3);
-          pushCmd("SUB H C");
+          if(indexFix<0){
+            pushCmd("SUB H C");
+          }else{
+            pushCmd("ADD H C");
+          }
           pushCmd("COPY A H");
           memToReg(8);
 
