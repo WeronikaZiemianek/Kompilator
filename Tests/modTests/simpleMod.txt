@@ -1,0 +1,15 @@
+DECLARE
+a;
+b;
+c;
+d;
+IN
+a:=8%4;
+b:=8%5;
+c:=8%0;
+d:=0%8;
+WRITE a;
+WRITE b;
+WRITE c;
+WRITE d;
+END

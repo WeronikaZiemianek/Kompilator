@@ -1,0 +1,20 @@
+DECLARE
+a(0:17);
+b(0:29);
+c;
+d;
+e;
+f;
+IN
+a(7):=9;
+b(20):=3;
+c:=7;
+d:=a(c)%b(20);
+b(20):=4;
+e:=a(c)%b(20);
+b(20):=0;
+f:=a(c)%b(20);
+WRITE d;
+WRITE e;
+WRITE f;
+END
