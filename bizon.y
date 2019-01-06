@@ -1138,8 +1138,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addr),1);
             memToReg(8);
+<<<<<<< HEAD
             if(isINC)
                 pushCmd("INC H");
+=======
+>>>>>>> c310b9d4b653157877248960627de367760e79b9
             setReg(to_string(b.memory),1);
             memToReg(2);
             pushCmd("SUB H B");
@@ -1159,8 +1162,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             }
             pushCmd("COPY A B");
             memToReg(8);
+<<<<<<< HEAD
             if(isINC)
                 pushCmd("INC H");
+=======
+>>>>>>> c310b9d4b653157877248960627de367760e79b9
             setReg(to_string(b.memory),1);
             memToReg(2);
             pushCmd("SUB H B");
@@ -1186,8 +1192,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addrA),1);
             memToReg(8);
+<<<<<<< HEAD
             if(isINC)
                 pushCmd("INC H");
+=======
+>>>>>>> c310b9d4b653157877248960627de367760e79b9
             setReg(to_string(bIndex.memory),1);
             memToReg(2);
             long long int indexFix = b.memory - b.move + 1;
@@ -1218,8 +1227,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
           }
           pushCmd("COPY A H");
           memToReg(8);
+<<<<<<< HEAD
           if(isINC)
               pushCmd("INC H");
+=======
+>>>>>>> c310b9d4b653157877248960627de367760e79b9
           pushCmd("SUB H B");
           if(isRemoval)
               removeIdef(bIndex.name);

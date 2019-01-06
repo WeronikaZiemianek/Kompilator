@@ -1,0 +1,11 @@
+DECLARE
+a;
+b;
+c;
+IN
+a:=1;
+b:=a+2;
+c:=2+a;
+WRITE b;
+WRITE c;
+END
