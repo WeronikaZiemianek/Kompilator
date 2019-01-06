@@ -1,0 +1,17 @@
+DECLARE
+a;
+b;
+c;
+d;
+e;
+IN
+a:=8;
+b:=a/4;
+c:=a/5;
+d:=a/0;
+e:=0/a;
+WRITE b;
+WRITE c;
+WRITE d;
+WRITE e;
+END

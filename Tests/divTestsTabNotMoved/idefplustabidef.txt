@@ -1,0 +1,12 @@
+DECLARE
+a(0:17);
+b;
+c;
+d;
+IN
+a(7):=3;
+b:=9;
+c:=7;
+d:=b/a(c);
+WRITE d;
+END
