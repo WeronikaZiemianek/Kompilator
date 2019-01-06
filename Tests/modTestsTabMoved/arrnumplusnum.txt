@@ -1,0 +1,14 @@
+DECLARE
+a(6:17);
+b;
+c;
+d;
+IN
+a(7):=9;
+b:=a(7)%3;
+c:=a(7)%4;
+d:=a(7)%0;
+WRITE b;
+WRITE c;
+WRITE d;
+END

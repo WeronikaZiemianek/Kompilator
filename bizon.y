@@ -1908,41 +1908,48 @@ void div(Idef a, Idef b) {
         removeIdef(b.name);
     }
     else if(a.type == "NUMBER" && b.type == "IDENTIFIER") {
+
+        if(stoll(a.name)==0){
+          setReg("0",8);
+          return;
+        }
+
         setReg(to_string(b.memory),1);
         memToReg(3);
 
-        if(stoll(a.name) == 0) {
-          setReg("0", 8);
-          return;
-        }
         setReg(a.name, 2);
         // num 1 w rejestrze C
         // num 2 w rejestrze B
         setReg("0", 8);
         long long int number = asmStack.size();
-        pushCmd("SUB B C");
-        pushCmd("JZERO B " + to_string(number + 4));
-        pushCmd("INC H");
-        pushCmd("JUMP " + to_string(number));
 
+        pushCmd("JZERO C " + to_string(number + 6));
+        pushCmd("SUB B C");
+        pushCmd("JZERO B " + to_string(number + 6));
+        pushCmd("INC H");
+        pushCmd("JUMP " + to_string(number+1));
+        setReg("0", 8);
         removeIdef(a.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
-        setReg(to_string(a.memory),1);
-        memToReg(2);
-        setReg(b.name, 3);
 
         if(stoll(b.name) == 0) {
           setReg("0", 8);
           return;
         }
 
+        setReg(to_string(a.memory),1);
+        memToReg(2);
+        setReg(b.name, 3);
         setReg("0", 8);
+
         long long int number = asmStack.size();
+        pushCmd("JZERO C " + to_string(number + 6));
         pushCmd("SUB B C");
-        pushCmd("JZERO B " + to_string(number + 4));
+        pushCmd("JZERO B " + to_string(number + 6));
         pushCmd("INC H");
-        pushCmd("JUMP " + to_string(number));
+        pushCmd("JUMP " + to_string(number+1));
+        setReg("0", 8);
 
         removeIdef(b.name);
     }
@@ -1956,14 +1963,327 @@ void div(Idef a, Idef b) {
         // num 2 w rejestrze H
         setReg("0", 8);
         long long int number = asmStack.size();
+        pushCmd("JZERO C " + to_string(number + 6));
         pushCmd("SUB B C");
-        pushCmd("JZERO B " + to_string(number + 4));
+        pushCmd("JZERO B " + to_string(number + 6));
         pushCmd("INC H");
-        pushCmd("JUMP " + to_string(number));
+        pushCmd("JUMP " + to_string(number + 1));
+        setReg("0", 8);
     }
 }
 
-void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {}
+void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
+  if(a.type == "NUMBER" && b.type == "ARRAY") {
+      if(bIndex.type == "NUMBER") {
+
+          if(stoll(a.name) == 0) {
+            setReg("0", 8);
+            return;
+          }
+
+          long long int addr = b.memory + stoll(bIndex.name) - b.move + 1;
+          setReg(to_string(addr),1);
+          memToReg(2);
+
+          setReg(a.name, 3);
+
+          setReg("0", 8);
+          long long int number = asmStack.size();
+          pushCmd("JZERO C" + to_string(number + 7));
+          pushCmd("INC C");
+          pushCmd("SUB C B");
+          pushCmd("JZERO C " + to_string(number + 7));
+          pushCmd("INC H");
+          pushCmd("JUMP " + to_string(number + 2));
+          setReg("0", 8);
+          removeIdef(a.name);
+      }
+      else if(bIndex.type == "IDENTIFIER") {
+
+          if(stoll(a.name) == 0) {
+            setReg("0", 8);
+            return;
+          }
+
+          setReg(to_string(bIndex.memory),1);
+          memToReg(2);
+          long long int indexFix = b.memory - b.move + 1;
+          setReg(to_string(indexFix),3);
+          if(indexFix<0){
+            pushCmd("SUB B C");
+          }else{
+            pushCmd("ADD B C");
+          }
+          pushCmd("COPY A B");
+          memToReg(2);
+
+          setReg(a.name, 3);
+
+          setReg("0", 8);
+          long long int number = asmStack.size();
+          pushCmd("JZERO C" + to_string(number + 7));
+          pushCmd("INC C");
+          pushCmd("SUB C B");
+          pushCmd("JZERO C " + to_string(number + 7));
+          pushCmd("INC H");
+          pushCmd("JUMP " + to_string(number + 2));
+          setReg("0", 8);
+          removeIdef(a.name);
+      }
+  }
+  else if(a.type == "ARRAY" && b.type == "NUMBER") {
+        if(aIndex.type == "NUMBER") {
+            if(stoll(b.name) == 0) {
+              setReg("0", 8);
+              return;
+            }
+
+            long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(3);
+
+            setReg(b.name, 2);
+
+            setReg("0", 8);
+            long long int number = asmStack.size();
+            pushCmd("JZERO C" + to_string(number + 7));
+            pushCmd("INC C");
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("INC H");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            removeIdef(b.name);
+        }
+        else if(aIndex.type == "IDENTIFIER") {
+            if(stoll(b.name) == 0) {
+              setReg("0", 8);
+              return;
+            }
+
+            setReg(to_string(aIndex.memory),1);
+            memToReg(3);
+            long long int indexFix = a.memory - a.move + 1;
+            setReg(to_string(indexFix),2);
+            if(indexFix<0){
+              pushCmd("SUB C B");
+            }else{
+              pushCmd("ADD C B");
+            }
+            pushCmd("COPY A C");
+            memToReg(3);
+
+            setReg(b.name, 2);
+
+            setReg("0", 8);
+            long long int number = asmStack.size();
+            pushCmd("JZERO C" + to_string(number + 7));
+            pushCmd("INC C");
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("INC H");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            removeIdef(b.name);
+        }
+    }
+    else if(a.type == "IDENTIFIER" && b.type == "ARRAY") {
+        if(bIndex.type == "NUMBER") {
+            long long int addr = b.memory + stoll(bIndex.name) - b.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(2);
+            setReg(to_string(a.memory),1);
+            memToReg(3);
+
+            setReg("0", 8);
+            long long int number = asmStack.size();
+            pushCmd("JZERO C" + to_string(number + 7));
+            pushCmd("INC C");
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("INC H");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+        }
+        else if(bIndex.type == "IDENTIFIER") {
+            setReg(to_string(bIndex.memory),1);
+            memToReg(2);
+            long long int indexFix = b.memory - b.move + 1;
+            setReg(to_string(indexFix),3);
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
+            pushCmd("COPY A B");
+            memToReg(2);
+            setReg(to_string(a.memory),1);
+            memToReg(3);
+            setReg("0", 8);
+            long long int number = asmStack.size();
+            pushCmd("JZERO C" + to_string(number + 7));
+            pushCmd("INC C");
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("INC H");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+        }
+    }
+    else if(a.type == "ARRAY" && b.type == "IDENTIFIER") {
+        if(aIndex.type == "NUMBER") {
+            long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(3);
+            setReg(to_string(b.memory),1);
+            memToReg(2);
+            setReg("0", 8);
+            long long int number = asmStack.size();
+            pushCmd("JZERO C" + to_string(number + 7));
+            pushCmd("INC C");
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("INC H");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+        }
+        else if(aIndex.type == "IDENTIFIER") {
+            setReg(to_string(aIndex.memory),1);
+            memToReg(3);
+
+            long long int indexFix = a.memory - a.move + 1;
+            setReg(to_string(indexFix),2);
+            if(indexFix<0){
+              pushCmd("SUB C B");
+            }else{
+              pushCmd("ADD C B");
+            }
+            pushCmd("COPY A C");
+            memToReg(3);
+
+            setReg(to_string(b.memory),1);
+            memToReg(2);
+
+            setReg("0", 8);
+            long long int number = asmStack.size();
+            pushCmd("JZERO C" + to_string(number + 7));
+            pushCmd("INC C");
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("INC H");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+        }
+    }
+    else if(a.type == "ARRAY" && b.type == "ARRAY") {
+        if(aIndex.type == "NUMBER" && bIndex.type == "NUMBER") {
+            long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
+            long long int addrB = b.memory + stoll(bIndex.name) - b.move + 1;
+            setReg(to_string(addrA),1);
+            memToReg(3);
+            setReg(to_string(addrB),1);
+            memToReg(2);
+            setReg("0", 8);
+            long long int number = asmStack.size();
+            pushCmd("JZERO C" + to_string(number + 7));
+            pushCmd("INC C");
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("INC H");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            removeIdef(aIndex.name);
+            removeIdef(bIndex.name);
+        }
+        else if(aIndex.type == "NUMBER" && bIndex.type == "IDENTIFIER") {
+            long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
+            setReg(to_string(addrA),1);
+            memToReg(3);
+            setReg(to_string(bIndex.memory),1);
+            memToReg(2);
+            long long int indexFix = b.memory - b.move + 1;
+            setReg(to_string(indexFix),4);
+            if(indexFix<0){
+              pushCmd("SUB B D");
+            }else{
+              pushCmd("ADD B D");
+            }
+            pushCmd("COPY A B");
+            memToReg(2);
+            setReg("0", 8);
+            long long int number = asmStack.size();
+            pushCmd("JZERO C" + to_string(number + 7));
+            pushCmd("INC C");
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("INC H");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            removeIdef(aIndex.name);
+        }
+        else if(aIndex.type == "IDENTIFIER" && bIndex.type == "NUMBER") {
+          long long int addrB = b.memory + stoll(bIndex.name) - b.move + 1;
+          setReg(to_string(addrB),1);
+          memToReg(2);
+          setReg(to_string(aIndex.memory),1);
+          memToReg(8);
+          long long int indexFix = a.memory - a.move + 1;
+          setReg(to_string(indexFix),4);
+          if(indexFix<0){
+            pushCmd("SUB H D");
+          }else{
+            pushCmd("ADD H D");
+          }
+          pushCmd("COPY A H");
+          memToReg(3);
+          setReg("0", 8);
+          long long int number = asmStack.size();
+          pushCmd("JZERO C" + to_string(number + 7));
+          pushCmd("INC C");
+          pushCmd("SUB C B");
+          pushCmd("JZERO C " + to_string(number + 7));
+          pushCmd("INC H");
+          pushCmd("JUMP " + to_string(number + 2));
+          setReg("0", 8);
+          removeIdef(bIndex.name);
+        }
+        else if(aIndex.type == "IDENTIFIER" && bIndex.type == "IDENTIFIER") {
+          setReg(to_string(bIndex.memory),1);
+          memToReg(2);
+          long long int indexFix = b.memory - b.move + 1;
+          setReg(to_string(indexFix),3);
+          if(indexFix<0){
+            pushCmd("SUB B C");
+          }else{
+            pushCmd("ADD B C");
+          }
+          pushCmd("COPY A B");
+          memToReg(2);
+
+          setReg(to_string(aIndex.memory),1);
+          memToReg(3);
+          indexFix = a.memory - a.move + 1;
+          setReg(to_string(indexFix),4);
+          if(indexFix<0){
+            pushCmd("SUB C D");
+          }else{
+            pushCmd("ADD C D");
+          }
+          pushCmd("COPY A C");
+          memToReg(3);
+
+          setReg("0", 8);
+          long long int number = asmStack.size();
+          pushCmd("JZERO C" + to_string(number + 7));
+          pushCmd("INC C");
+          pushCmd("SUB C B");
+          pushCmd("JZERO C " + to_string(number + 7));
+          pushCmd("INC H");
+          pushCmd("JUMP " + to_string(number + 2));
+          setReg("0", 8);
+        }
+    }
+}
 
 void mod(Idef a, Idef b) {
     if(a.type == "NUMBER" && b.type == "NUMBER") {
@@ -1978,41 +2298,52 @@ void mod(Idef a, Idef b) {
         removeIdef(b.name);
     }
     else if(a.type == "NUMBER" && b.type == "IDENTIFIER") {
-        setReg(to_string(b.memory),1);
-        memToReg(3);
 
         if(stoll(a.name) == 0) {
           setReg("0", 8);
           return;
         }
+
         setReg(a.name, 2);
-        // num 1 w rejestrze C
-        // num 2 w rejestrze B
+
+        setReg(to_string(b.memory),1);
+        memToReg(3);
+
         pushCmd("COPY H B");
+        pushCmd("INC B");
         long long int number = asmStack.size();
+        pushCmd("JZERO C " + to_string(number + 6));
+        pushCmd("JZERO B " + to_string(number + 6));
         pushCmd("SUB B C");
-        pushCmd("JZERO B " + to_string(number + 4));
+        pushCmd("JZERO B " + to_string(number + 7));
         pushCmd("COPY H B");
-        pushCmd("JUMP " + to_string(number));
+        pushCmd("JUMP " + to_string(number + 2));
+        setReg("0", 8);
+        pushCmd("DEC H");
 
         removeIdef(a.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
-        setReg(to_string(a.memory),1);
-        memToReg(2);
-        setReg(b.name, 3);
-
         if(stoll(b.name) == 0) {
           setReg("0", 8);
           return;
         }
 
+        setReg(to_string(a.memory),1);
+        memToReg(2);
+        setReg(b.name, 3);
+
         pushCmd("COPY H B");
+        pushCmd("INC B");
         long long int number = asmStack.size();
+        pushCmd("JZERO C " + to_string(number + 6));
+        pushCmd("JZERO B " + to_string(number + 6));
         pushCmd("SUB B C");
-        pushCmd("JZERO B " + to_string(number + 4));
+        pushCmd("JZERO B " + to_string(number + 7));
         pushCmd("COPY H B");
-        pushCmd("JUMP " + to_string(number));
+        pushCmd("JUMP " + to_string(number + 2));
+        setReg("0", 8);
+        pushCmd("DEC H");
 
         removeIdef(b.name);
     }
@@ -2022,15 +2353,353 @@ void mod(Idef a, Idef b) {
         setReg(to_string(b.memory),1);
         memToReg(3);
 
-        // num 1 w rejestrze B
-        // num 2 w rejestrze H
         pushCmd("COPY H B");
+        pushCmd("INC B");
         long long int number = asmStack.size();
+        pushCmd("JZERO C " + to_string(number + 6));
+        pushCmd("JZERO B " + to_string(number + 6));
         pushCmd("SUB B C");
-        pushCmd("JZERO B " + to_string(number + 4));
+        pushCmd("JZERO B " + to_string(number + 7));
         pushCmd("COPY H B");
-        pushCmd("JUMP " + to_string(number));
+        pushCmd("JUMP " + to_string(number + 2));
+        setReg("0", 8);
+        pushCmd("DEC H");
     }
 }
 
-void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {}
+void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
+  if(a.type == "NUMBER" && b.type == "ARRAY") {
+      if(bIndex.type == "NUMBER") {
+
+          if(stoll(a.name) == 0) {
+            setReg("0", 8);
+            return;
+          }
+
+          long long int addr = b.memory + stoll(bIndex.name) - b.move + 1;
+          setReg(to_string(addr),1);
+          memToReg(2);
+
+          setReg(a.name, 3);
+
+          pushCmd("COPY H C");
+          pushCmd("INC C");
+          long long int number = asmStack.size();
+          pushCmd("JZERO B " + to_string(number + 6));
+          pushCmd("JZERO C " + to_string(number + 6));
+          pushCmd("SUB C B");
+          pushCmd("JZERO C " + to_string(number + 7));
+          pushCmd("COPY H C");
+          pushCmd("JUMP " + to_string(number + 2));
+          setReg("0", 8);
+          pushCmd("DEC H");
+          removeIdef(a.name);
+      }
+      else if(bIndex.type == "IDENTIFIER") {
+
+          if(stoll(a.name) == 0) {
+            setReg("0", 8);
+            return;
+          }
+
+          setReg(to_string(bIndex.memory),1);
+          memToReg(2);
+          long long int indexFix = b.memory - b.move + 1;
+          setReg(to_string(indexFix),3);
+          if(indexFix<0){
+            pushCmd("SUB B C");
+          }else{
+            pushCmd("ADD B C");
+          }
+          pushCmd("COPY A B");
+          memToReg(2);
+
+          setReg(a.name, 3);
+
+          pushCmd("COPY H C");
+          pushCmd("INC C");
+          long long int number = asmStack.size();
+          pushCmd("JZERO B " + to_string(number + 6));
+          pushCmd("JZERO C " + to_string(number + 6));
+          pushCmd("SUB C B");
+          pushCmd("JZERO C " + to_string(number + 7));
+          pushCmd("COPY H C");
+          pushCmd("JUMP " + to_string(number + 2));
+          setReg("0", 8);
+          pushCmd("DEC H");
+          removeIdef(a.name);
+      }
+  }
+  else if(a.type == "ARRAY" && b.type == "NUMBER") {
+        if(aIndex.type == "NUMBER") {
+            if(stoll(b.name) == 0) {
+              setReg("0", 8);
+              return;
+            }
+
+            long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(3);
+
+            setReg(b.name, 2);
+
+            pushCmd("COPY H C");
+            pushCmd("INC C");
+            long long int number = asmStack.size();
+            pushCmd("JZERO B " + to_string(number + 6));
+            pushCmd("JZERO C " + to_string(number + 6));
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("COPY H C");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            pushCmd("DEC H");
+            removeIdef(b.name);
+        }
+        else if(aIndex.type == "IDENTIFIER") {
+            if(stoll(b.name) == 0) {
+              setReg("0", 8);
+              return;
+            }
+
+            setReg(to_string(aIndex.memory),1);
+            memToReg(3);
+            long long int indexFix = a.memory - a.move + 1;
+            setReg(to_string(indexFix),2);
+            if(indexFix<0){
+              pushCmd("SUB C B");
+            }else{
+              pushCmd("ADD C B");
+            }
+            pushCmd("COPY A C");
+            memToReg(3);
+
+            setReg(b.name, 2);
+
+            pushCmd("COPY H C");
+            pushCmd("INC C");
+            long long int number = asmStack.size();
+            pushCmd("JZERO B " + to_string(number + 6));
+            pushCmd("JZERO C " + to_string(number + 6));
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("COPY H C");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            pushCmd("DEC H");
+            removeIdef(b.name);
+        }
+    }
+    else if(a.type == "IDENTIFIER" && b.type == "ARRAY") {
+        if(bIndex.type == "NUMBER") {
+            long long int addr = b.memory + stoll(bIndex.name) - b.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(2);
+            setReg(to_string(a.memory),1);
+            memToReg(3);
+
+            pushCmd("COPY H C");
+            pushCmd("INC C");
+            long long int number = asmStack.size();
+            pushCmd("JZERO B " + to_string(number + 6));
+            pushCmd("JZERO C " + to_string(number + 6));
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("COPY H C");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            pushCmd("DEC H");
+        }
+        else if(bIndex.type == "IDENTIFIER") {
+            setReg(to_string(bIndex.memory),1);
+            memToReg(2);
+            long long int indexFix = b.memory - b.move + 1;
+            setReg(to_string(indexFix),3);
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
+            pushCmd("COPY A B");
+            memToReg(2);
+            setReg(to_string(a.memory),1);
+            memToReg(3);
+            pushCmd("COPY H C");
+            pushCmd("INC C");
+            long long int number = asmStack.size();
+            pushCmd("JZERO B " + to_string(number + 6));
+            pushCmd("JZERO C " + to_string(number + 6));
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("COPY H C");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            pushCmd("DEC H");
+        }
+    }
+    else if(a.type == "ARRAY" && b.type == "IDENTIFIER") {
+        if(aIndex.type == "NUMBER") {
+            long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(3);
+            setReg(to_string(b.memory),1);
+            memToReg(2);
+            pushCmd("COPY H C");
+            pushCmd("INC C");
+            long long int number = asmStack.size();
+            pushCmd("JZERO B " + to_string(number + 6));
+            pushCmd("JZERO C " + to_string(number + 6));
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("COPY H C");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            pushCmd("DEC H");
+        }
+        else if(aIndex.type == "IDENTIFIER") {
+            setReg(to_string(aIndex.memory),1);
+            memToReg(3);
+
+            long long int indexFix = a.memory - a.move + 1;
+            setReg(to_string(indexFix),2);
+            if(indexFix<0){
+              pushCmd("SUB C B");
+            }else{
+              pushCmd("ADD C B");
+            }
+            pushCmd("COPY A C");
+            memToReg(3);
+
+            setReg(to_string(b.memory),1);
+            memToReg(2);
+
+            pushCmd("COPY H C");
+            pushCmd("INC C");
+            long long int number = asmStack.size();
+            pushCmd("JZERO B " + to_string(number + 6));
+            pushCmd("JZERO C " + to_string(number + 6));
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("COPY H C");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            pushCmd("DEC H");
+        }
+    }
+    else if(a.type == "ARRAY" && b.type == "ARRAY") {
+        if(aIndex.type == "NUMBER" && bIndex.type == "NUMBER") {
+            long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
+            long long int addrB = b.memory + stoll(bIndex.name) - b.move + 1;
+            setReg(to_string(addrA),1);
+            memToReg(3);
+            setReg(to_string(addrB),1);
+            memToReg(2);
+            pushCmd("COPY H C");
+            pushCmd("INC C");
+            long long int number = asmStack.size();
+            pushCmd("JZERO B " + to_string(number + 6));
+            pushCmd("JZERO C " + to_string(number + 6));
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("COPY H C");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            pushCmd("DEC H");
+            removeIdef(aIndex.name);
+            removeIdef(bIndex.name);
+        }
+        else if(aIndex.type == "NUMBER" && bIndex.type == "IDENTIFIER") {
+            long long int addrA = a.memory + stoll(aIndex.name) - a.move + 1;
+            setReg(to_string(addrA),1);
+            memToReg(3);
+            setReg(to_string(bIndex.memory),1);
+            memToReg(2);
+            long long int indexFix = b.memory - b.move + 1;
+            setReg(to_string(indexFix),4);
+            if(indexFix<0){
+              pushCmd("SUB B D");
+            }else{
+              pushCmd("ADD B D");
+            }
+            pushCmd("COPY A B");
+            memToReg(2);
+            pushCmd("COPY H C");
+            pushCmd("INC C");
+            long long int number = asmStack.size();
+            pushCmd("JZERO B " + to_string(number + 6));
+            pushCmd("JZERO C " + to_string(number + 6));
+            pushCmd("SUB C B");
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("COPY H C");
+            pushCmd("JUMP " + to_string(number + 2));
+            setReg("0", 8);
+            pushCmd("DEC H");
+            removeIdef(aIndex.name);
+        }
+        else if(aIndex.type == "IDENTIFIER" && bIndex.type == "NUMBER") {
+          long long int addrB = b.memory + stoll(bIndex.name) - b.move + 1;
+          setReg(to_string(addrB),1);
+          memToReg(2);
+          setReg(to_string(aIndex.memory),1);
+          memToReg(8);
+          long long int indexFix = a.memory - a.move + 1;
+          setReg(to_string(indexFix),4);
+          if(indexFix<0){
+            pushCmd("SUB H D");
+          }else{
+            pushCmd("ADD H D");
+          }
+          pushCmd("COPY A H");
+          memToReg(3);
+          pushCmd("COPY H C");
+          pushCmd("INC C");
+          long long int number = asmStack.size();
+          pushCmd("JZERO B " + to_string(number + 6));
+          pushCmd("JZERO C " + to_string(number + 6));
+          pushCmd("SUB C B");
+          pushCmd("JZERO C " + to_string(number + 7));
+          pushCmd("COPY H C");
+          pushCmd("JUMP " + to_string(number + 2));
+          setReg("0", 8);
+          pushCmd("DEC H");
+          removeIdef(bIndex.name);
+        }
+        else if(aIndex.type == "IDENTIFIER" && bIndex.type == "IDENTIFIER") {
+          setReg(to_string(bIndex.memory),1);
+          memToReg(2);
+          long long int indexFix = b.memory - b.move + 1;
+          setReg(to_string(indexFix),3);
+          if(indexFix<0){
+            pushCmd("SUB B C");
+          }else{
+            pushCmd("ADD B C");
+          }
+          pushCmd("COPY A B");
+          memToReg(2);
+
+          setReg(to_string(aIndex.memory),1);
+          memToReg(3);
+          indexFix = a.memory - a.move + 1;
+          setReg(to_string(indexFix),4);
+          if(indexFix<0){
+            pushCmd("SUB C D");
+          }else{
+            pushCmd("ADD C D");
+          }
+          pushCmd("COPY A C");
+          memToReg(3);
+
+          pushCmd("COPY H C");
+          pushCmd("INC C");
+          long long int number = asmStack.size();
+          pushCmd("JZERO B " + to_string(number + 6));
+          pushCmd("JZERO C " + to_string(number + 6));
+          pushCmd("SUB C B");
+          pushCmd("JZERO C " + to_string(number + 7));
+          pushCmd("COPY H C");
+          pushCmd("JUMP " + to_string(number + 2));
+          setReg("0", 8);
+          pushCmd("DEC H");
+        }
+    }
+}

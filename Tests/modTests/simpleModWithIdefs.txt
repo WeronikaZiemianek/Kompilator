@@ -1,0 +1,23 @@
+DECLARE
+a;
+b;
+c;
+d;
+e;
+f;
+g;
+h;
+IN
+a:=8;
+b:=4;
+c:=5;
+d:=0;
+e:=a%b;
+f:=a%c;
+g:=a%d;
+h:=d%a;
+WRITE e;
+WRITE f;
+WRITE g;
+WRITE h;
+END

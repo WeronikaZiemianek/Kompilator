@@ -1,0 +1,22 @@
+DECLARE
+a(6:17);
+b;
+c;
+d;
+f;
+e;
+g;
+h;
+IN
+a(7):=9;
+b:=3;
+f:=4;
+g:=0;
+c:=7;
+d:=a(c)%b;
+e:=a(c)%f;
+h:=a(c)%g;
+WRITE d;
+WRITE e;
+WRITE h;
+END
