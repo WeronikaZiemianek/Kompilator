@@ -391,7 +391,6 @@ ifbody:
         }
         jumpStack.pop_back();
 
-
         depth--;
         flagAssign = 1;
     }
@@ -399,6 +398,7 @@ ifbody:
 
 forbody:
     DOWNTO value DO {
+
       Idef a = idefStack.at(expressionArgs[0]);
       Idef b = idefStack.at(expressionArgs[1]);
 
@@ -413,6 +413,7 @@ forbody:
           Idef index = idefStack.at(expArgsTabIndex[0]);
           if(index.type == "NUMBER") {
               long long int tabElMem = a.memory + stoll(index.name) - a.move + 1;
+              setReg(to_string(tabElMem),1);
               memToReg(8);
           }
           else {
@@ -516,6 +517,7 @@ forbody:
                 Idef index = idefStack.at(expArgsTabIndex[0]);
                 if(index.type == "NUMBER") {
                     long long int tabElMem = a.memory + stoll(index.name) - a.move + 1;
+                    setReg(to_string(tabElMem),1);
                     memToReg(8);
                 }
                 else {
@@ -558,7 +560,6 @@ forbody:
             insertIdef(name, s);
             setReg(to_string(idefStack.at(name).memory),1);
             regToMem(8);
-
 
             forStack.push_back(idefStack.at(assignArg.name));
 
