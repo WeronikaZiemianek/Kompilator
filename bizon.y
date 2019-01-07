@@ -817,29 +817,29 @@ value EQUAL value {
           bI = idefStack.at(expArgsTabIndex[1]);
 
       if(a.type != "ARRAY" && b.type != "ARRAY")
-          sub(a, b, 1, 0);
+          sub(b, a, 0, 0);
       else
-          subTab(a, b, aI, bI, 1, 0);
+          subTab(b, a, bI, aI, 0, 0);
 
-      pushCmd("COPY F H");
-
-      if(a.type != "ARRAY" && b.type != "ARRAY")
-          sub(b, a, 1, 0);
-      else
-          subTab(b, a, bI, aI, 1, 0);
-
-      pushCmd("COPY G H");
-
+      pushCmd("JZERO H " + to_string(asmStack.size()+2));
 
       Jump j;
       createJump(&j, asmStack.size(), depth);
       jumpStack.push_back(j);
-      pushCmd("JZERO F");
+      pushCmd("JUMP");
+
+      if(a.type != "ARRAY" && b.type != "ARRAY")
+          sub(a, b, 0, 1);
+      else
+          subTab(a, b, aI, bI, 0, 1);
+
+      addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size()+1);
+      jumpStack.pop_back();
 
       Jump jj;
       createJump(&jj, asmStack.size(), depth);
       jumpStack.push_back(jj);
-      pushCmd("JZERO G");
+      pushCmd("JZERO H");
   }
   expArgsTabIndex[0] = "-1";
   expArgsTabIndex[1] = "-1";
