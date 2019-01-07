@@ -213,23 +213,29 @@ expression SEMICOLON {
     } commands WHILE {
         flagAssign = 0;
     } condition ENDDO {
-      long long int stack;
-      long long int jumpCount = jumpStack.size()-1;
-      if(jumpCount > 2 && jumpStack.at(jumpCount-2).depth == depth) {
-        stack = jumpStack.at(jumpCount-2).placeInStack;
-        pushCmd("JUMP " + to_string(stack));
-        addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
-        addInt(jumpStack.at(jumpCount-1).placeInStack, asmStack.size());
-        jumpStack.pop_back();
-      }
-      else {
-        stack = jumpStack.at(jumpCount-1).placeInStack;
-        pushCmd("JUMP " + to_string(stack));
-        addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
-      }
-      jumpStack.pop_back();
-      jumpStack.pop_back();
-      depth--;
+          long long int stack;
+          long long int jumpCount = jumpStack.size()-1;
+          cout << jumpCount << endl;
+          cout << jumpStack.at(jumpCount).depth << endl;
+          cout << jumpStack.at(jumpCount-1).depth << endl;
+
+          if(jumpCount > 1 && jumpStack.at(jumpCount).depth == jumpStack.at(jumpCount-1).depth) {
+              stack = jumpStack.at(jumpCount-2).placeInStack;
+              pushCmd("JUMP " + to_string(stack));
+
+              addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
+              addInt(jumpStack.at(jumpCount-1).placeInStack, asmStack.size());
+              jumpStack.pop_back();
+          }
+          else {
+              stack = jumpStack.at(jumpCount-1).placeInStack;
+              pushCmd("JUMP " + to_string(stack));
+              addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
+          }
+          jumpStack.pop_back();
+          jumpStack.pop_back();
+
+          depth--;
     }
 | WHILE {
         flagAssign = 0;
@@ -255,7 +261,6 @@ expression SEMICOLON {
             jumpStack.pop_back();
         }
         else {
-            cout << " tutaj" << endl;
             stack = jumpStack.at(jumpCount-1).placeInStack;
             pushCmd("JUMP " + to_string(stack));
             addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
