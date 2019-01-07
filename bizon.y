@@ -215,9 +215,6 @@ expression SEMICOLON {
     } condition ENDDO {
           long long int stack;
           long long int jumpCount = jumpStack.size()-1;
-          cout << jumpCount << endl;
-          cout << jumpStack.at(jumpCount).depth << endl;
-          cout << jumpStack.at(jumpCount-1).depth << endl;
 
           if(jumpCount > 1 && jumpStack.at(jumpCount).depth == jumpStack.at(jumpCount-1).depth) {
               stack = jumpStack.at(jumpCount-2).placeInStack;
@@ -248,9 +245,6 @@ expression SEMICOLON {
     } DO commands ENDWHILE {
         long long int stack;
         long long int jumpCount = jumpStack.size()-1;
-        cout << jumpCount << endl;
-        cout << jumpStack.at(jumpCount).depth << endl;
-        cout << jumpStack.at(jumpCount-1).depth << endl;
 
         if(jumpCount > 1 && jumpStack.at(jumpCount).depth == jumpStack.at(jumpCount-1).depth) {
             stack = jumpStack.at(jumpCount-2).placeInStack;
@@ -763,7 +757,7 @@ value EQUAL value {
       removeIdef(b.name);
 
       Jump j;
-      createJump(&j, asmStack.size(), depth);
+      createJump(&j, asmStack.size(), depth+20);
       jumpStack.push_back(j);
       pushCmd("JZERO H");
   }
@@ -790,12 +784,12 @@ value EQUAL value {
 
 
       Jump j;
-      createJump(&j, asmStack.size(), depth);
+      createJump(&j, asmStack.size(), depth+20);
       jumpStack.push_back(j);
       pushCmd("JZERO F");
 
       Jump jj;
-      createJump(&jj, asmStack.size(), depth);
+      createJump(&jj, asmStack.size(), depth+20);
       jumpStack.push_back(jj);
       pushCmd("JZERO G");
   }
@@ -817,7 +811,7 @@ value EQUAL value {
       removeIdef(b.name);
 
       Jump j;
-      createJump(&j, asmStack.size(), depth);
+      createJump(&j, asmStack.size(), depth+20);
       jumpStack.push_back(j);
       pushCmd("JZERO H");
   }
@@ -836,7 +830,7 @@ value EQUAL value {
       pushCmd("JZERO H " + to_string(asmStack.size()+2));
 
       Jump j;
-      createJump(&j, asmStack.size(), depth);
+      createJump(&j, asmStack.size(), depth+20);
       jumpStack.push_back(j);
       pushCmd("JUMP");
 
@@ -849,7 +843,7 @@ value EQUAL value {
       jumpStack.pop_back();
 
       Jump jj;
-      createJump(&jj, asmStack.size(), depth);
+      createJump(&jj, asmStack.size(), depth+20);
       jumpStack.push_back(jj);
       pushCmd("JZERO H");
   }
@@ -886,7 +880,7 @@ value EQUAL value {
     }
 
     Jump j;
-    createJump(&j, asmStack.size(), depth);
+    createJump(&j, asmStack.size(), depth+20);
     jumpStack.push_back(j);
     pushCmd("JZERO H");
 
@@ -921,7 +915,7 @@ value EQUAL value {
     }
 
     Jump j;
-    createJump(&j, asmStack.size(), depth);
+    createJump(&j, asmStack.size(), depth+20);
     jumpStack.push_back(j);
     pushCmd("JZERO H");
 
@@ -956,7 +950,7 @@ value EQUAL value {
     }
 
     Jump j;
-    createJump(&j, asmStack.size(), depth);
+    createJump(&j, asmStack.size(), depth+20);
     jumpStack.push_back(j);
     pushCmd("JZERO H");
 
@@ -991,7 +985,7 @@ value EQUAL value {
     }
 
     Jump j;
-    createJump(&j, asmStack.size(), depth);
+    createJump(&j, asmStack.size(), depth+20);
     jumpStack.push_back(j);
     pushCmd("JZERO H");
 
