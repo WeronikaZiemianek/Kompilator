@@ -39,6 +39,7 @@
   vector<string> asmStack;
   vector<Jump> jumpStack;
   vector<Idef> forStack;
+  vector<Idef> conditionStack;
 
   int flagAssign;
   int flagWrite;
@@ -354,39 +355,43 @@ expression SEMICOLON {
 
 ifbody:
     ELSE {
+        long long int jumpCount = jumpStack.size()-1;
+        Jump jump = jumpStack.at(jumpCount);
+        addInt(jump.placeInStack, asmStack.size()+1);
+
+        if((jumpCount-1) >= 0 && jumpStack.at(jumpCount).depth == jumpStack.at(jumpCount-1).depth)
+        {
+          addInt(jumpStack.at(jumpCount).placeInStack - 1, asmStack.size()+1);
+          jumpStack.pop_back();
+        }
+        jumpStack.pop_back();
+
         Jump j;
         createJump(&j, asmStack.size(), depth);
         jumpStack.push_back(j);
         pushCmd("JUMP");
-        long long int jumpCount = jumpStack.size()-2;
-        Jump jump = jumpStack.at(jumpCount);
-        addInt(jump.placeInStack, asmStack.size());
 
-        jumpCount--;
-        if(jumpCount >= 0 && jumpStack.at(jumpCount).depth == depth) {
-            addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
-        }
         flagAssign = 1;
     } commands ENDIF {
         addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+
         jumpStack.pop_back();
-        jumpStack.pop_back();
-        if(jumpStack.size() >= 1 && jumpStack.at(jumpStack.size()-1).depth == depth) {
-            jumpStack.pop_back();
-        }
+
         depth--;
         flagAssign = 1;
     }
 |   ENDIF {
         long long int jumpCount = jumpStack.size()-1;
         addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
-        jumpCount--;
 
-        if(jumpCount >= 0 && jumpStack.at(jumpCount).depth == depth) {
-            addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
-            jumpStack.pop_back();
+        if((jumpCount-1) >= 0 && jumpStack.at(jumpCount).depth == jumpStack.at(jumpCount-1).depth)
+        {
+          addInt(jumpStack.at(jumpCount).placeInStack - 1, asmStack.size());
+          jumpStack.pop_back();
         }
         jumpStack.pop_back();
+
+
         depth--;
         flagAssign = 1;
     }
@@ -450,7 +455,6 @@ forbody:
       insertIdef(name, s);
       setReg(to_string(idefStack.at(name).memory),1);
       regToMem(8);
-
 
       forStack.push_back(idefStack.at(assignArg.name));
 
@@ -739,16 +743,17 @@ value EQUAL value {
   Idef b = idefStack.at(expressionArgs[1]);
   if(a.type == "NUMBER" && b.type == "NUMBER") {
       if(stoll(a.name) == stoll(b.name))
-          setReg("1", assignArg.memory);
+          setReg("1", 8);
       else
-          setReg("0", assignArg.memory);
+          setReg("0", 8);
 
       removeIdef(a.name);
       removeIdef(b.name);
-      Jump jum;
-      createJump(&jum, asmStack.size(), depth);
-      jumpStack.push_back(jum);
-      pushCmd("JZERO " + to_ascii(assignArg.memory));
+
+      Jump j;
+      createJump(&j, asmStack.size(), depth);
+      jumpStack.push_back(j);
+      pushCmd("JZERO H");
   }
   else {
       Idef aI, bI;
@@ -758,30 +763,29 @@ value EQUAL value {
           bI = idefStack.at(expArgsTabIndex[1]);
 
       if(a.type != "ARRAY" && b.type != "ARRAY")
-          sub(b, a, 0, 0);
+          sub(a, b, 1, 0);
       else
-          subTab(b, a, bI, aI, 0, 0);
+          subTab(a, b, aI, bI, 1, 0);
 
-      pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
+      pushCmd("COPY F H");
 
-      pushCmd("JZERO " + to_ascii(assignArg.memory) + " " + to_string(asmStack.size()+2));
+      if(a.type != "ARRAY" && b.type != "ARRAY")
+          sub(b, a, 1, 0);
+      else
+          subTab(b, a, bI, aI, 1, 0);
+
+      pushCmd("COPY G H");
+
+
       Jump j;
       createJump(&j, asmStack.size(), depth);
       jumpStack.push_back(j);
-      pushCmd("JUMP");
+      pushCmd("JZERO F");
 
-      if(a.type != "ARRAY" && b.type != "ARRAY")
-          sub(b, a, 0, 1);
-      else
-          subTab(b, a, bI, aI, 0, 1);
-
-      pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
-
-      pushCmd("JZERO " + to_ascii(assignArg.memory) + " " + to_string(asmStack.size()+2));
       Jump jj;
       createJump(&jj, asmStack.size(), depth);
       jumpStack.push_back(jj);
-      pushCmd("JUMP");
+      pushCmd("JZERO G");
   }
   expArgsTabIndex[0] = "-1";
   expArgsTabIndex[1] = "-1";
@@ -793,16 +797,17 @@ value EQUAL value {
   Idef b = idefStack.at(expressionArgs[1]);
   if(a.type == "NUMBER" && b.type == "NUMBER") {
       if(stoll(a.name) != stoll(b.name))
-          setReg("1", assignArg.memory);
+          setReg("1", 8);
       else
-          setReg("0", assignArg.memory);
+          setReg("0", 8);
 
       removeIdef(a.name);
       removeIdef(b.name);
-      Jump jum;
-      createJump(&jum, asmStack.size(), depth);
-      jumpStack.push_back(jum);
-      pushCmd("JZERO " + to_ascii(assignArg.memory));
+
+      Jump j;
+      createJump(&j, asmStack.size(), depth);
+      jumpStack.push_back(j);
+      pushCmd("JZERO H");
   }
   else {
       Idef aI, bI;
@@ -812,31 +817,29 @@ value EQUAL value {
           bI = idefStack.at(expArgsTabIndex[1]);
 
       if(a.type != "ARRAY" && b.type != "ARRAY")
-          sub(b, a, 0, 0);
+          sub(a, b, 1, 0);
       else
-          subTab(b, a, bI, aI, 0, 0);
+          subTab(a, b, aI, bI, 1, 0);
 
-      pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
+      pushCmd("COPY F H");
 
-      pushCmd("JZERO " + to_ascii(assignArg.memory) + " " + to_string(asmStack.size()+2));
+      if(a.type != "ARRAY" && b.type != "ARRAY")
+          sub(b, a, 1, 0);
+      else
+          subTab(b, a, bI, aI, 1, 0);
+
+      pushCmd("COPY G H");
+
+
       Jump j;
       createJump(&j, asmStack.size(), depth);
       jumpStack.push_back(j);
-      pushCmd("JUMP");
+      pushCmd("JZERO F");
 
-      if(a.type != "ARRAY" && b.type != "ARRAY")
-          sub(b, a, 0, 1);
-      else
-          subTab(b, a, bI, aI, 0, 1);
-
-      pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
-
-      addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size()+1);
-      jumpStack.pop_back();
       Jump jj;
       createJump(&jj, asmStack.size(), depth);
       jumpStack.push_back(jj);
-      pushCmd("JZERO " + to_ascii(assignArg.memory));
+      pushCmd("JZERO G");
   }
   expArgsTabIndex[0] = "-1";
   expArgsTabIndex[1] = "-1";
@@ -848,9 +851,9 @@ value EQUAL value {
   Idef b = idefStack.at(expressionArgs[1]);
   if(a.type == "NUMBER" && b.type == "NUMBER") {
       if(stoll(a.name) < stoll(b.name))
-          setReg("1", assignArg.memory);
+          setReg("1", 8);
       else
-          setReg("0", assignArg.memory);
+          setReg("0", 8);
 
       removeIdef(a.name);
       removeIdef(b.name);
@@ -868,13 +871,12 @@ value EQUAL value {
             expArgsTabIndex[0] = "-1";
             expArgsTabIndex[1] = "-1";
         }
-        pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
     }
 
     Jump j;
     createJump(&j, asmStack.size(), depth);
     jumpStack.push_back(j);
-    pushCmd("JZERO " + to_ascii(assignArg.memory));
+    pushCmd("JZERO H");
 
     expressionArgs[0] = "-1";
     expressionArgs[1] = "-1";
@@ -884,9 +886,9 @@ value EQUAL value {
   Idef b = idefStack.at(expressionArgs[1]);
   if(a.type == "NUMBER" && b.type == "NUMBER") {
       if(stoll(a.name) > stoll(b.name))
-          setReg("1", assignArg.memory);
+          setReg("1", 8);
       else
-          setReg("0", assignArg.memory);
+          setReg("0", 8);
 
       removeIdef(a.name);
       removeIdef(b.name);
@@ -904,13 +906,12 @@ value EQUAL value {
             expArgsTabIndex[0] = "-1";
             expArgsTabIndex[1] = "-1";
         }
-        pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
     }
 
     Jump j;
     createJump(&j, asmStack.size(), depth);
     jumpStack.push_back(j);
-    pushCmd("JZERO " + to_ascii(assignArg.memory));
+    pushCmd("JZERO H");
 
     expressionArgs[0] = "-1";
     expressionArgs[1] = "-1";
@@ -919,10 +920,10 @@ value EQUAL value {
   Idef a = idefStack.at(expressionArgs[0]);
   Idef b = idefStack.at(expressionArgs[1]);
   if(a.type == "NUMBER" && b.type == "NUMBER") {
-      if(stoll(a.name) < stoll(b.name))
-          setReg("1", assignArg.memory);
+      if(stoll(a.name) <= stoll(b.name))
+          setReg("1", 8);
       else
-          setReg("0", assignArg.memory);
+          setReg("0", 8);
 
       removeIdef(a.name);
       removeIdef(b.name);
@@ -940,13 +941,12 @@ value EQUAL value {
             expArgsTabIndex[0] = "-1";
             expArgsTabIndex[1] = "-1";
         }
-        pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
     }
 
     Jump j;
     createJump(&j, asmStack.size(), depth);
     jumpStack.push_back(j);
-    pushCmd("JZERO " + to_ascii(assignArg.memory));
+    pushCmd("JZERO H");
 
     expressionArgs[0] = "-1";
     expressionArgs[1] = "-1";
@@ -955,10 +955,10 @@ value EQUAL value {
   Idef a = idefStack.at(expressionArgs[0]);
   Idef b = idefStack.at(expressionArgs[1]);
   if(a.type == "NUMBER" && b.type == "NUMBER") {
-      if(stoll(a.name) < stoll(b.name))
-          setReg("1", assignArg.memory);
+      if(stoll(a.name) >= stoll(b.name))
+          setReg("1", 8);
       else
-          setReg("0", assignArg.memory);
+          setReg("0", 8);
 
       removeIdef(a.name);
       removeIdef(b.name);
@@ -976,13 +976,12 @@ value EQUAL value {
             expArgsTabIndex[0] = "-1";
             expArgsTabIndex[1] = "-1";
         }
-        pushCmd("COPY " + to_ascii(assignArg.memory) + " H");
     }
 
     Jump j;
     createJump(&j, asmStack.size(), depth);
     jumpStack.push_back(j);
-    pushCmd("JZERO " + to_ascii(assignArg.memory));
+    pushCmd("JZERO H");
 
     expressionArgs[0] = "-1";
     expressionArgs[1] = "-1";
