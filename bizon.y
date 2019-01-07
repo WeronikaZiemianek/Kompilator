@@ -1486,6 +1486,19 @@ void sub(Idef a, Idef b, int isINC, int isRemoval)  {
           removeIdef(a.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
+
+      if(stoll(b.name) < 28){
+        setReg(to_string(a.memory),1);
+        memToReg(8);
+        if(isINC)
+            pushCmd("INC H");
+        for(int i=0; i<stoll(b.name);i++ )
+          pushCmd("DEC H");
+        if(isRemoval)
+          removeIdef(b.name);
+        return;
+      }
+
         setReg(to_string(a.memory),1);
         memToReg(8);
         if(isINC)
@@ -1545,6 +1558,20 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
   }
   else if(a.type == "ARRAY" && b.type == "NUMBER") {
         if(aIndex.type == "NUMBER") {
+
+          if(stoll(b.name) < 28){
+            long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(8);
+            if(isINC)
+                pushCmd("INC H");
+            for(int i=0; i<stoll(b.name);i++ )
+              pushCmd("DEC H");
+            if(isRemoval)
+              removeIdef(b.name);
+            return;
+          }
+
             long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addr),1);
             memToReg(8);
@@ -1558,6 +1585,28 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             }
         }
         else if(aIndex.type == "IDENTIFIER") {
+
+          if(stoll(b.name) < 28){
+            setReg(to_string(aIndex.memory),1);
+            memToReg(2);
+            long long int indexFix = a.memory - a.move + 1;
+            setReg(to_string(indexFix),3);
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
+            pushCmd("COPY A B");
+            memToReg(8);
+            if(isINC)
+                pushCmd("INC H");
+            for(int i=0; i<stoll(b.name);i++ )
+              pushCmd("DEC H");
+            if(isRemoval)
+              removeIdef(b.name);
+            return;
+          }
+
             setReg(to_string(aIndex.memory),1);
             memToReg(2);
             long long int indexFix = a.memory - a.move + 1;
