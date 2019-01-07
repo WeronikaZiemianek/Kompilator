@@ -273,7 +273,47 @@ expression SEMICOLON {
         assignArg = idefStack.at($2);
         depth++;
     } FROM value forbody
-| READ identifier SEMICOLON {}
+| READ identifier {
+        flagAssign = 1;
+    }
+    SEMICOLON {
+      if(assignArg.type == "ARRAY") {
+          Idef index = idefStack.at(assignArgTabIndex);
+          if(index.type == "NUMBER") {
+              pushCmd("GET H");
+              long long int tabElMem = assignArg.memory + stoll(index.name) - assignArg.move + 1;
+              setReg(to_string(tabElMem), 1);
+              regToMem(8);
+              removeIdef(index.name);
+          }
+          else {
+              pushCmd("GET H");
+
+              setReg(to_string(index.memory),1);
+              memToReg(2);
+              long long int indexFix = assignArg.memory - assignArg.move + 1;
+              setReg(to_string(indexFix),3);
+              if(indexFix<0){
+                pushCmd("SUB B C");
+              }else{
+                pushCmd("ADD B C");
+              }
+              pushCmd("COPY A B");
+              regToMem(8);
+          }
+      }
+      else if(assignArg.isLocal == 0) {
+          pushCmd("GET H");
+          setReg(to_string(assignArg.memory),1);
+          regToMem(8);
+      }
+      else {
+          cout << "Błąd:linia " << yylineno << " - Próba modyfikacji iteratora pętli" << endl;
+          exit(1);
+      }
+      idefStack.at(assignArg.name).isInitialized = 1;
+      flagAssign = 1;
+    }
 |  WRITE {
         flagAssign = 0;
         flagWrite = 1;
@@ -365,6 +405,24 @@ forbody:
           memToReg(8);
       }
       else {
+          Idef index = idefStack.at(expArgsTabIndex[0]);
+          if(index.type == "NUMBER") {
+              long long int tabElMem = a.memory + stoll(index.name) - a.move + 1;
+              memToReg(8);
+          }
+          else {
+              setReg(to_string(index.memory),1);
+              memToReg(2);
+              long long int indexFix = a.memory - a.move + 1;
+              setReg(to_string(indexFix),3);
+              if(indexFix<0){
+                pushCmd("SUB B C");
+              }else{
+                pushCmd("ADD B C");
+              }
+              pushCmd("COPY A B");
+              memToReg(8);
+          }
       }
       setReg(to_string(assignArg.memory),1);
       regToMem(8);
@@ -451,6 +509,24 @@ forbody:
                 memToReg(8);
             }
             else {
+                Idef index = idefStack.at(expArgsTabIndex[0]);
+                if(index.type == "NUMBER") {
+                    long long int tabElMem = a.memory + stoll(index.name) - a.move + 1;
+                    memToReg(8);
+                }
+                else {
+                    setReg(to_string(index.memory),1);
+                    memToReg(2);
+                    long long int indexFix = a.memory - a.move + 1;
+                    setReg(to_string(indexFix),3);
+                    if(indexFix<0){
+                      pushCmd("SUB B C");
+                    }else{
+                      pushCmd("ADD B C");
+                    }
+                    pushCmd("COPY A B");
+                    memToReg(8);
+                }
             }
             setReg(to_string(assignArg.memory),1);
             regToMem(8);
