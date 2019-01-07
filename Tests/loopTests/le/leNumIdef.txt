@@ -1,0 +1,50 @@
+DECLARE
+a;
+b;
+c;
+IN
+a:=0;
+b:=1;
+c:=2;
+
+IF 0<=a THEN
+  WRITE 1;
+ENDIF
+
+IF 1<=b THEN
+  WRITE 2;
+ENDIF
+
+IF 1<=c THEN
+  WRITE 3;
+ENDIF
+
+IF 2<=b THEN
+  WRITE 4;
+ENDIF
+
+IF 0<=a THEN
+  WRITE 5;
+ELSE
+  WRITE 6;
+ENDIF
+
+IF 1<=b THEN
+  WRITE 7;
+ELSE
+  WRITE 8;
+ENDIF
+
+IF 1<=c THEN
+  WRITE 9;
+ELSE
+  WRITE 10;
+ENDIF
+
+IF 2<=b THEN
+  WRITE 11;
+ELSE
+  WRITE 12;
+ENDIF
+
+END

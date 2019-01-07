@@ -1,0 +1,51 @@
+DECLARE
+a;
+b;
+c;
+
+IN
+a:=0;
+b:=1;
+c:=2;
+
+IF a=0 THEN
+  WRITE 1;
+ENDIF
+
+IF b=1 THEN
+  WRITE 2;
+ENDIF
+
+IF b=2 THEN
+  WRITE 3;
+ENDIF
+
+IF c=1 THEN
+  WRITE 4;
+ENDIF
+
+IF a=0 THEN
+  WRITE 5;
+ELSE
+  WRITE 6;
+ENDIF
+
+IF b=1 THEN
+  WRITE 7;
+ELSE
+  WRITE 8;
+ENDIF
+
+IF b=2 THEN
+  WRITE 9;
+ELSE
+  WRITE 10;
+ENDIF
+
+IF c=1 THEN
+  WRITE 11;
+ELSE
+  WRITE 12;
+ENDIF
+
+END
