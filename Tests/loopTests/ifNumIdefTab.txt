@@ -1,0 +1,57 @@
+DECLARE
+a(11:17);
+b(0:8);
+f;
+g;
+h;
+IN
+a(12):=0;
+a(13):=1;
+a(14):=2;
+b(1):=0;
+b(2):=1;
+b(3):=2;
+f:=1;
+g:=2;
+h:=3;
+IF a(12)=b(f) THEN
+  WRITE 1;
+ENDIF
+
+IF a(13)=b(g) THEN
+  WRITE 2;
+ENDIF
+
+IF a(13)=b(h) THEN
+  WRITE 3;
+ENDIF
+
+IF a(14)=b(g) THEN
+  WRITE 4;
+ENDIF
+
+IF a(12)=b(f) THEN
+  WRITE 5;
+ELSE
+  WRITE 6;
+ENDIF
+
+IF a(13)=b(g) THEN
+  WRITE 7;
+ELSE
+  WRITE 8;
+ENDIF
+
+IF a(13)=b(h) THEN
+  WRITE 9;
+ELSE
+  WRITE 10;
+ENDIF
+
+IF a(14)=b(g) THEN
+  WRITE 11;
+ELSE
+  WRITE 12;
+ENDIF
+
+END
