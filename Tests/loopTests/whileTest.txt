@@ -1,0 +1,170 @@
+DECLARE
+e(0:8);
+f(10:18);
+a;
+b;
+c;
+d;
+g;
+h;
+j;
+i;
+IN
+a:=1;
+b:=2;
+c:=0;
+d:=1;
+e(0):=0;
+e(1):=1;
+e(2):=2;
+f(10):=10;
+f(11):=11;
+f(12):=12;
+g:=11;
+h:=12;
+j:=10;
+
+i:=0;
+WHILE i < 1 DO
+  WRITE 0;
+  i:=i+1;
+ENDWHILE
+
+i:=1;
+WHILE i < 2 DO
+  WRITE 1;
+  i:=i+1;
+ENDWHILE
+
+i:=0;
+WHILE i < a DO
+  WRITE 2;
+  i:=i+1;
+ENDWHILE
+
+i:=1;
+WHILE i < b DO
+  WRITE 3;
+  i:=i+1;
+ENDWHILE
+
+i:=c;
+WHILE i < 1 DO
+  WRITE 4;
+  i:=i+1;
+ENDWHILE
+
+i:=d;
+WHILE i < 2 DO
+  WRITE 5;
+  i:=i+1;
+ENDWHILE
+
+i:=c;
+WHILE i < a DO
+  WRITE 6;
+  i:=i+1;
+ENDWHILE
+
+i:=d;
+WHILE i < b DO
+  WRITE 7;
+  i:=i+1;
+ENDWHILE
+
+i:=e(0);
+WHILE i < e(1) DO
+  WRITE 8;
+  i:=i+1;
+ENDWHILE
+
+i:=e(1);
+WHILE i < e(2) DO
+  WRITE 9;
+  i:=i+1;
+ENDWHILE
+
+i:=e(0);
+WHILE i < e(a) DO
+  WRITE 10;
+  i:=i+1;
+ENDWHILE
+
+i:=e(1);
+WHILE i < e(b) DO
+  WRITE 11;
+  i:=i+1;
+ENDWHILE
+
+i:=e(c);
+WHILE i < e(1) DO
+  WRITE 12;
+  i:=i+1;
+ENDWHILE
+
+i:=e(d);
+WHILE i < e(2) DO
+  WRITE 13;
+  i:=i+1;
+ENDWHILE
+
+i:=e(c);
+WHILE i < e(a) DO
+  WRITE 14;
+  i:=i+1;
+ENDWHILE
+
+i:=e(d);
+WHILE i < e(b) DO
+  WRITE 15;
+  i:=i+1;
+ENDWHILE
+
+i:=f(10);
+WHILE i < f(11) DO
+  WRITE 16;
+  i:=i+1;
+ENDWHILE
+
+i:=f(11);
+WHILE i < f(12) DO
+  WRITE 17;
+  i:=i+1;
+ENDWHILE
+
+i:=f(j);
+WHILE i < f(g) DO
+  WRITE 18;
+  i:=i+1;
+ENDWHILE
+
+i:=f(g);
+WHILE i < f(h) DO
+  WRITE 19;
+  i:=i+1;
+ENDWHILE
+
+i:=f(10);
+WHILE i < f(g) DO
+  WRITE 20;
+  i:=i+1;
+ENDWHILE
+
+i:=f(11);
+WHILE i < f(h) DO
+  WRITE 21;
+  i:=i+1;
+ENDWHILE
+
+i:=f(j);
+WHILE i < f(11) DO
+  WRITE 22;
+  i:=i+1;
+ENDWHILE
+
+i:=f(g);
+WHILE i < f(12) DO
+  WRITE 23;
+  i:=i+1;
+ENDWHILE
+END
