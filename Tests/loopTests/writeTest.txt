@@ -1,0 +1,22 @@
+DECLARE
+a;
+b(0:8);
+c;
+d(7:9);
+e;
+IN
+a:=2;
+b(0):=3;
+c:=1;
+b(1):=4;
+d(7):=5;
+d(8):=6;
+e:=8;
+WRITE 0;
+WRITE 1;
+WRITE a;
+WRITE b(0);
+WRITE b(c);
+WRITE d(7);
+WRITE d(e);
+END

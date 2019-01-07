@@ -1,53 +1,41 @@
 DECLARE
-a;
-b;
-c;
-d;
-e;
-f;
 IN
-a:=0;
-b:=1;
-c:=2;
-d:=0;
-e:=1;
-f:=2;
 
-IF a>=d THEN
+IF 0!=0 THEN
   WRITE 1;
 ENDIF
 
-IF b>=e THEN
+IF 1!=1 THEN
   WRITE 2;
 ENDIF
 
-IF b>=f THEN
+IF 1!=2 THEN
   WRITE 3;
 ENDIF
 
-IF c>=e THEN
+IF 2!=1 THEN
   WRITE 4;
 ENDIF
 
-IF a>=d THEN
+IF 0!=0 THEN
   WRITE 5;
 ELSE
   WRITE 6;
 ENDIF
 
-IF b>=e THEN
+IF 1!=1 THEN
   WRITE 7;
 ELSE
   WRITE 8;
 ENDIF
 
-IF b>=f THEN
+IF 1!=2 THEN
   WRITE 9;
 ELSE
   WRITE 10;
 ENDIF
 
-IF c>=e THEN
+IF 2!=1 THEN
   WRITE 11;
 ELSE
   WRITE 12;

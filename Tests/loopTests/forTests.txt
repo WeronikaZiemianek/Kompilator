@@ -5,9 +5,10 @@ a;
 b;
 c;
 d;
+e;
+f;
 g;
 h;
-j;
 IN
 a:=1;
 b:=2;
@@ -19,103 +20,103 @@ e(2):=2;
 f(10):=10;
 f(11):=11;
 f(12):=12;
-g:=11;
-h:=12;
-j:=10;
+a:=11;
+b:=12;
+c:=10;
 
 FOR i FROM 0 TO 1 DO
   WRITE 0;
-ENDFOR
+END FOR
 
 FOR i FROM 1 TO 2 DO
   WRITE 1;
-ENDFOR
+END FOR
 
 FOR i FROM 0 TO a DO
   WRITE 2;
-ENDFOR
+END FOR
 
 FOR i FROM 1 TO b DO
   WRITE 3;
-ENDFOR
+END FOR
 
 FOR i FROM c TO 1 DO
   WRITE 4;
-ENDFOR
+END FOR
 
 FOR i FROM d TO 2 DO
   WRITE 5;
-ENDFOR
+END FOR
 
 FOR i FROM c TO a DO
   WRITE 6;
-ENDFOR
+END FOR
 
 FOR i FROM d TO b DO
   WRITE 7;
-ENDFOR
+END FOR
 
 FOR i FROM e(0) TO e(1) DO
   WRITE 8;
-ENDFOR
+END FOR
 
 FOR i FROM e(1) TO e(2) DO
   WRITE 9;
-ENDFOR
+END FOR
 
 FOR i FROM e(0) TO e(a) DO
   WRITE 10;
-ENDFOR
+END FOR
 
 FOR i FROM e(1) TO e(b) DO
   WRITE 11;
-ENDFOR
+END FOR
 
 FOR i FROM e(c) TO e(1) DO
   WRITE 12;
-ENDFOR
+END FOR
 
 FOR i FROM e(d) TO e(2) DO
   WRITE 13;
-ENDFOR
+END FOR
 
 FOR i FROM e(c) TO e(a) DO
   WRITE 14;
-ENDFOR
+END FOR
 
 FOR i FROM e(d) TO e(b) DO
   WRITE 15;
-ENDFOR
+END FOR
 
 FOR i FROM f(10) TO f(11) DO
   WRITE 16;
-ENDFOR
+END FOR
 
 FOR i FROM f(11) TO f(12) DO
   WRITE 17;
-ENDFOR
+END FOR
 
-FOR i FROM f(j) TO f(g) DO
+FOR i FROM f(c) TO f(a) DO
   WRITE 18;
-ENDFOR
+END FOR
 
-FOR i FROM f(g) TO f(h) DO
+FOR i FROM f(a) TO f(b) DO
   WRITE 19;
-ENDFOR
+END FOR
 
-FOR i FROM f(10) TO f(g) DO
+FOR i FROM f(10) TO f(a) DO
   WRITE 20;
-ENDFOR
+END FOR
 
-FOR i FROM f(11) TO f(h) DO
+FOR i FROM f(11) TO f(b) DO
   WRITE 21;
-ENDFOR
+END FOR
 
-FOR i FROM f(j) TO f(11) DO
+FOR i FROM f(c) TO f(11) DO
   WRITE 22;
-ENDFOR
+END FOR
 
-FOR i FROM f(g) TO f(12) DO
+FOR i FROM f(a) TO f(12) DO
   WRITE 23;
-ENDFOR
+END FOR
 END

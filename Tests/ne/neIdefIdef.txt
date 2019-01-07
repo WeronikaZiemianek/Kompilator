@@ -13,41 +13,41 @@ d:=0;
 e:=1;
 f:=2;
 
-IF a>=d THEN
+IF a!=d THEN
   WRITE 1;
 ENDIF
 
-IF b>=e THEN
+IF b!=e THEN
   WRITE 2;
 ENDIF
 
-IF b>=f THEN
+IF b!=f THEN
   WRITE 3;
 ENDIF
 
-IF c>=e THEN
+IF c!=e THEN
   WRITE 4;
 ENDIF
 
-IF a>=d THEN
+IF a!=d THEN
   WRITE 5;
 ELSE
   WRITE 6;
 ENDIF
 
-IF b>=e THEN
+IF b!=e THEN
   WRITE 7;
 ELSE
   WRITE 8;
 ENDIF
 
-IF b>=f THEN
+IF b!=f THEN
   WRITE 9;
 ELSE
   WRITE 10;
 ENDIF
 
-IF c>=e THEN
+IF c!=e THEN
   WRITE 11;
 ELSE
   WRITE 12;
