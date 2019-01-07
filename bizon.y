@@ -2561,6 +2561,16 @@ void mod(Idef a, Idef b) {
           setReg("0", 8);
           return;
         }
+        if(stoll(b.name) == 2) {
+          setReg(to_string(a.memory),1);
+          memToReg(2);
+          pushCmd("INC B");
+          pushCmd("SUB H H");
+          long long int number = asmStack.size();
+          pushCmd("JODD B "+ to_string(number + 2));
+          pushCmd("INC H");
+          return;
+        }
 
         setReg(to_string(a.memory),1);
         memToReg(2);
@@ -2670,6 +2680,18 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
               return;
             }
 
+            if(stoll(b.name) == 2) {
+              long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
+              setReg(to_string(addr),1);
+              memToReg(2);
+              pushCmd("INC B");
+              pushCmd("SUB H H");
+              long long int number = asmStack.size();
+              pushCmd("JODD B "+ to_string(number + 2));
+              pushCmd("INC H");
+              return;
+            }
+
             long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addr),1);
             memToReg(3);
@@ -2692,6 +2714,26 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
         else if(aIndex.type == "IDENTIFIER") {
             if(stoll(b.name) == 0) {
               setReg("0", 8);
+              return;
+            }
+
+            if(stoll(b.name) == 2) {
+              setReg(to_string(aIndex.memory),1);
+              memToReg(3);
+              long long int indexFix = a.memory - a.move + 1;
+              setReg(to_string(indexFix),2);
+              if(indexFix<0){
+                pushCmd("SUB C B");
+              }else{
+                pushCmd("ADD C B");
+              }
+              pushCmd("COPY A C");
+              memToReg(2);
+              pushCmd("INC B");
+              pushCmd("SUB H H");
+              long long int number = asmStack.size();
+              pushCmd("JODD B "+ to_string(number + 2));
+              pushCmd("INC H");
               return;
             }
 
