@@ -2073,6 +2073,14 @@ void div(Idef a, Idef b) {
 
         if(stoll(a.name)==0){
           setReg("0",8);
+          removeIdef(a.name);
+          return;
+        }
+        if(stoll(a.name)==2){
+          setReg(to_string(b.memory),1);
+          memToReg(8);
+          pushCmd("HALF H");
+          removeIdef(a.name);
           return;
         }
 
@@ -2097,6 +2105,14 @@ void div(Idef a, Idef b) {
 
         if(stoll(b.name) == 0) {
           setReg("0", 8);
+          return;
+        }
+
+        if(stoll(b.name)==2){
+          setReg(to_string(a.memory),1);
+          memToReg(8);
+          pushCmd("HALF H");
+          removeIdef(b.name);
           return;
         }
 
@@ -2146,6 +2162,15 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             return;
           }
 
+          if(stoll(a.name)==2){
+            long long int addr = b.memory + stoll(bIndex.name) - b.move + 1;
+            setReg(to_string(addr),1);
+            memToReg(8);
+            pushCmd("HALF H");
+            removeIdef(a.name);
+            return;
+          }
+
           long long int addr = b.memory + stoll(bIndex.name) - b.move + 1;
           setReg(to_string(addr),1);
           memToReg(2);
@@ -2167,6 +2192,23 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
 
           if(stoll(a.name) == 0) {
             setReg("0", 8);
+            return;
+          }
+
+          if(stoll(a.name)==2){
+            setReg(to_string(bIndex.memory),1);
+            memToReg(2);
+            long long int indexFix = b.memory - b.move + 1;
+            setReg(to_string(indexFix),3);
+            if(indexFix<0){
+              pushCmd("SUB B C");
+            }else{
+              pushCmd("ADD B C");
+            }
+            pushCmd("COPY A B");
+            memToReg(8);
+            pushCmd("HALF H");
+            removeIdef(a.name);
             return;
           }
 
@@ -2209,6 +2251,15 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
 
             setReg(b.name, 2);
 
+            if(stoll(b.name)==2){
+              long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
+              setReg(to_string(addr),1);
+              memToReg(8);
+              pushCmd("HALF H");
+              removeIdef(b.name);
+              return;
+            }
+
             setReg("0", 8);
             long long int number = asmStack.size();
             pushCmd("JZERO C" + to_string(number + 7));
@@ -2223,6 +2274,23 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
         else if(aIndex.type == "IDENTIFIER") {
             if(stoll(b.name) == 0) {
               setReg("0", 8);
+              return;
+            }
+
+            if(stoll(b.name)==2){
+              setReg(to_string(aIndex.memory),1);
+              memToReg(2);
+              long long int indexFix = a.memory - a.move + 1;
+              setReg(to_string(indexFix),3);
+              if(indexFix<0){
+                pushCmd("SUB B C");
+              }else{
+                pushCmd("ADD B C");
+              }
+              pushCmd("COPY A B");
+              memToReg(8);
+              pushCmd("HALF H");
+              removeIdef(b.name);
               return;
             }
 
