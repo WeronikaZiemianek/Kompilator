@@ -1804,9 +1804,20 @@ void mul(Idef a, Idef b) {
           return;
         }
 
+        long long int va = stoll(a.name) - 1;
+
         pushCmd("COPY H B");
-        for(long long int i=0; i < stoll(a.name)-1;i++)
+
+        while (va>0) {
+          if(va%2==0){
+            va=va/2;
+            pushCmd("ADD H H");
+          }
+          else{
             pushCmd("ADD H B");
+            va--;
+          }
+        }
 
         removeIdef(a.name);
     }
@@ -1819,9 +1830,20 @@ void mul(Idef a, Idef b) {
           return;
         }
 
+        long long int vb = stoll(b.name) - 1;
+
         pushCmd("COPY H B");
-        for(long long int i=0; i < stoll(b.name)-1;i++)
+
+        while (vb>0) {
+          if(vb%2==0){
+            vb=vb/2;
+            pushCmd("ADD H H");
+          }
+          else{
             pushCmd("ADD H B");
+            vb--;
+          }
+        }
 
         removeIdef(b.name);
     }
@@ -1856,10 +1878,20 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             return;
           }
 
+          long long int va = stoll(a.name) - 1;
+
           pushCmd("COPY H B");
 
-          for(long long int i=0; i < stoll(a.name)-1;i++)
+          while (va>0) {
+            if(va%2==0){
+              va=va/2;
+              pushCmd("ADD H H");
+            }
+            else{
               pushCmd("ADD H B");
+              va--;
+            }
+          }
 
           removeIdef(a.name);
       }
@@ -1882,10 +1914,21 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             return;
           }
 
+          long long int va = stoll(a.name) - 1;
+
           pushCmd("COPY H B");
 
-          for(long long int i=0; i < stoll(a.name)-1;i++)
+          while (va>0) {
+            if(va%2==0){
+              va=va/2;
+              pushCmd("ADD H H");
+            }
+            else{
               pushCmd("ADD H B");
+              va--;
+            }
+          }
+
           removeIdef(a.name);
       }
   }
@@ -1900,10 +1943,20 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
               return;
             }
 
+            long long int vb = stoll(b.name) - 1;
+
             pushCmd("COPY H B");
 
-            for(long long int i=0; i < stoll(b.name)-1;i++)
+            while (vb>0) {
+              if(vb%2==0){
+                vb=vb/2;
+                pushCmd("ADD H H");
+              }
+              else{
                 pushCmd("ADD H B");
+                vb--;
+              }
+            }
 
             removeIdef(b.name);
         }
@@ -1924,10 +1977,20 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
               return;
             }
 
+            long long int vb = stoll(b.name) - 1;
+
             pushCmd("COPY H B");
 
-            for(long long int i=0; i < stoll(b.name)-1;i++)
+            while (vb>0) {
+              if(vb%2==0){
+                vb=vb/2;
+                pushCmd("ADD H H");
+              }
+              else{
                 pushCmd("ADD H B");
+                vb--;
+              }
+            }
 
             removeIdef(b.name);
         }
