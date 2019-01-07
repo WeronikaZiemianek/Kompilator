@@ -1268,6 +1268,14 @@ void add(Idef a, Idef b) {
         removeIdef(b.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
+
+      if(a.name == b.name) {
+        setReg(to_string(a.memory),1);
+        memToReg(8);
+        pushCmd("ADD H H");
+        return;
+      }
+
         setReg(to_string(a.memory),1);
         memToReg(8);
         setReg(to_string(b.memory),1);
@@ -1488,6 +1496,12 @@ void sub(Idef a, Idef b, int isINC, int isRemoval)  {
           removeIdef(b.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
+
+      if(a.name == b.name) {
+        setReg("0",8);
+        return;
+      }
+
         setReg(to_string(a.memory),1);
         memToReg(8);
         if(isINC)
@@ -2133,6 +2147,12 @@ void div(Idef a, Idef b) {
         removeIdef(b.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
+
+      if(a.name == b.name) {
+        setReg("1",8);
+        return;
+      }
+
         setReg(to_string(a.memory),1);
         memToReg(2);
         setReg(to_string(b.memory),1);
@@ -2595,6 +2615,11 @@ void mod(Idef a, Idef b) {
         memToReg(2);
         setReg(to_string(b.memory),1);
         memToReg(3);
+
+        if(a.name == b.name) {
+          setReg("0",8);
+          return;
+        }
 
         pushCmd("COPY H B");
         pushCmd("INC B");
