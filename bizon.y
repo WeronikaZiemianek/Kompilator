@@ -1853,16 +1853,15 @@ void mul(Idef a, Idef b) {
         setReg(to_string(b.memory),1);
         memToReg(3);
 
-        // num 1 w rejestrze B
-        // num 2 w rejestrze C
         setReg("0",8);
-        pushCmd("COPY D B");
-        pushCmd("COPY E C");
         long long int number = asmStack.size();
-        pushCmd("JZERO D " + to_string(number + 4));
-        pushCmd("DEC D");
-        pushCmd("ADD H E");
-        pushCmd("JUMP " + to_string(number));
+        pushCmd("JZERO C " + to_string(number + 7));
+        pushCmd("JODD C " + to_string(number + 3));
+        pushCmd("JUMP" + to_string(number + 4));
+        pushCmd("ADD H B");
+        pushCmd("ADD B B");
+        pushCmd("HALF C");
+        pushCmd("JUMP" + to_string(number));
     }
 }
 
@@ -2004,13 +2003,14 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             memToReg(2);
 
             setReg("0",8);
-            pushCmd("COPY D B");
-            pushCmd("COPY E C");
             long long int number = asmStack.size();
-            pushCmd("JZERO D " + to_string(number + 4));
-            pushCmd("DEC D");
-            pushCmd("ADD H E");
-            pushCmd("JUMP " + to_string(number));
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("JODD C " + to_string(number + 3));
+            pushCmd("JUMP" + to_string(number + 4));
+            pushCmd("ADD H B");
+            pushCmd("ADD B B");
+            pushCmd("HALF C");
+            pushCmd("JUMP" + to_string(number));
         }
         else if(bIndex.type == "IDENTIFIER") {
             setReg(to_string(bIndex.memory),1);
@@ -2026,14 +2026,16 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             memToReg(2);
             setReg(to_string(a.memory),1);
             memToReg(3);
+
             setReg("0",8);
-            pushCmd("COPY D B");
-            pushCmd("COPY E C");
             long long int number = asmStack.size();
-            pushCmd("JZERO D " + to_string(number + 4));
-            pushCmd("DEC D");
-            pushCmd("ADD H E");
-            pushCmd("JUMP " + to_string(number));
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("JODD C " + to_string(number + 3));
+            pushCmd("JUMP" + to_string(number + 4));
+            pushCmd("ADD H B");
+            pushCmd("ADD B B");
+            pushCmd("HALF C");
+            pushCmd("JUMP" + to_string(number));
         }
     }
     else if(a.type == "ARRAY" && b.type == "IDENTIFIER") {
@@ -2043,14 +2045,16 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             memToReg(3);
             setReg(to_string(b.memory),1);
             memToReg(2);
+
             setReg("0",8);
-            pushCmd("COPY D B");
-            pushCmd("COPY E C");
             long long int number = asmStack.size();
-            pushCmd("JZERO D " + to_string(number + 4));
-            pushCmd("DEC D");
-            pushCmd("ADD H E");
-            pushCmd("JUMP " + to_string(number));
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("JODD C " + to_string(number + 3));
+            pushCmd("JUMP" + to_string(number + 4));
+            pushCmd("ADD H B");
+            pushCmd("ADD B B");
+            pushCmd("HALF C");
+            pushCmd("JUMP" + to_string(number));
         }
         else if(aIndex.type == "IDENTIFIER") {
             setReg(to_string(aIndex.memory),1);
@@ -2067,14 +2071,16 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             memToReg(3);
             setReg(to_string(b.memory),1);
             memToReg(2);
+
             setReg("0",8);
-            pushCmd("COPY D B");
-            pushCmd("COPY E C");
             long long int number = asmStack.size();
-            pushCmd("JZERO D " + to_string(number + 4));
-            pushCmd("DEC D");
-            pushCmd("ADD H E");
-            pushCmd("JUMP " + to_string(number));
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("JODD C " + to_string(number + 3));
+            pushCmd("JUMP" + to_string(number + 4));
+            pushCmd("ADD H B");
+            pushCmd("ADD B B");
+            pushCmd("HALF C");
+            pushCmd("JUMP" + to_string(number));
         }
     }
     else if(a.type == "ARRAY" && b.type == "ARRAY") {
@@ -2085,14 +2091,16 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             memToReg(2);
             setReg(to_string(addrB),1);
             memToReg(3);
+
             setReg("0",8);
-            pushCmd("COPY D B");
-            pushCmd("COPY E C");
             long long int number = asmStack.size();
-            pushCmd("JZERO D " + to_string(number + 4));
-            pushCmd("DEC D");
-            pushCmd("ADD H E");
-            pushCmd("JUMP " + to_string(number));
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("JODD C " + to_string(number + 3));
+            pushCmd("JUMP" + to_string(number + 4));
+            pushCmd("ADD H B");
+            pushCmd("ADD B B");
+            pushCmd("HALF C");
+            pushCmd("JUMP" + to_string(number));
             removeIdef(aIndex.name);
             removeIdef(bIndex.name);
         }
@@ -2111,14 +2119,16 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             }
             pushCmd("COPY A B");
             memToReg(2);
+
             setReg("0",8);
-            pushCmd("COPY D B");
-            pushCmd("COPY E C");
             long long int number = asmStack.size();
-            pushCmd("JZERO D " + to_string(number + 4));
-            pushCmd("DEC D");
-            pushCmd("ADD H E");
-            pushCmd("JUMP " + to_string(number));
+            pushCmd("JZERO C " + to_string(number + 7));
+            pushCmd("JODD C " + to_string(number + 3));
+            pushCmd("JUMP" + to_string(number + 4));
+            pushCmd("ADD H B");
+            pushCmd("ADD B B");
+            pushCmd("HALF C");
+            pushCmd("JUMP" + to_string(number));
             removeIdef(aIndex.name);
         }
         else if(aIndex.type == "IDENTIFIER" && bIndex.type == "NUMBER") {
@@ -2136,14 +2146,16 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           }
           pushCmd("COPY A H");
           memToReg(3);
+
           setReg("0",8);
-          pushCmd("COPY D B");
-          pushCmd("COPY E C");
           long long int number = asmStack.size();
-          pushCmd("JZERO D " + to_string(number + 4));
-          pushCmd("DEC D");
-          pushCmd("ADD H E");
-          pushCmd("JUMP " + to_string(number));
+          pushCmd("JZERO C " + to_string(number + 7));
+          pushCmd("JODD C " + to_string(number + 3));
+          pushCmd("JUMP" + to_string(number + 4));
+          pushCmd("ADD H B");
+          pushCmd("ADD B B");
+          pushCmd("HALF C");
+          pushCmd("JUMP" + to_string(number));
           removeIdef(bIndex.name);
         }
         else if(aIndex.type == "IDENTIFIER" && bIndex.type == "IDENTIFIER") {
@@ -2172,13 +2184,14 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           memToReg(3);
 
           setReg("0",8);
-          pushCmd("COPY D B");
-          pushCmd("COPY E C");
           long long int number = asmStack.size();
-          pushCmd("JZERO D " + to_string(number + 4));
-          pushCmd("DEC D");
-          pushCmd("ADD H E");
-          pushCmd("JUMP " + to_string(number));
+          pushCmd("JZERO C " + to_string(number + 7));
+          pushCmd("JODD C " + to_string(number + 3));
+          pushCmd("JUMP" + to_string(number + 4));
+          pushCmd("ADD H B");
+          pushCmd("ADD B B");
+          pushCmd("HALF C");
+          pushCmd("JUMP" + to_string(number));
         }
     }
 }
