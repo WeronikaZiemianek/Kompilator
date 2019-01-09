@@ -617,8 +617,16 @@ expression:
 value {
   Idef idef = idefStack.at(expressionArgs[0]);
   if(idef.type == "NUMBER") {
-    setReg(idef.name, 8);
-    removeIdef(idef.name);
+    if(stoll(idef.name)<15){
+      pushCmd("SUB H H");
+      for(long long int i=0;i<stoll(idef.name);i++)
+          pushCmd("INC H");
+      removeIdef(idef.name);
+    }
+    else {
+      setReg(idef.name, 8);
+      removeIdef(idef.name);
+    }
   }
   else if(idef.type == "IDENTIFIER") {
     setReg(to_string(idef.memory), 1);
@@ -1261,6 +1269,15 @@ void add(Idef a, Idef b) {
         removeIdef(a.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
+
+        if(stoll(b.name)<30){
+          setReg(to_string(a.memory),1);
+          memToReg(8);
+          for(long long int i=0; i<stoll(b.name);i++)
+              pushCmd("INC H");
+          return;
+        }
+
         setReg(to_string(a.memory),1);
         memToReg(8);
         setReg(b.name, 2);
@@ -1836,20 +1853,29 @@ void mul(Idef a, Idef b) {
         removeIdef(b.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
+
+      if(a.name != b.name) {
         setReg(to_string(a.memory),1);
         memToReg(2);
         setReg(to_string(b.memory),1);
         memToReg(3);
+      }
+      else {
+        setReg(to_string(a.memory),1);
+        memToReg(2);
+        pushCmd("COPY C B");
+      }
+
 
         setReg("0",8);
         long long int number = asmStack.size();
         pushCmd("JZERO C " + to_string(number + 7));
         pushCmd("JODD C " + to_string(number + 3));
-        pushCmd("JUMP" + to_string(number + 4));
+        pushCmd("JUMP " + to_string(number + 4));
         pushCmd("ADD H B");
         pushCmd("ADD B B");
         pushCmd("HALF C");
-        pushCmd("JUMP" + to_string(number));
+        pushCmd("JUMP " + to_string(number));
     }
 }
 
@@ -2250,19 +2276,36 @@ void div(Idef a, Idef b) {
         setReg(to_string(b.memory),1);
         memToReg(3);
 
-        setReg("0",8);
+        pushCmd("SUB H H");
+        setReg("1",4);
+        Jump j;
+        createJump(&j, asmStack.size(), depth);
+        jumpStack.push_back(j);
+        pushCmd("JZERO C");
+
         long long int number = asmStack.size();
-        pushCmd("JZERO C " + to_string(number + 11));
-        pushCmd("COPY D B");
-        pushCmd("INC D");
-        pushCmd("SUB D C");
-        pushCmd("JZERO D " + to_string(number + 11));
-        pushCmd("DEC D");
-        pushCmd("INC H");
-        pushCmd("COPY B D");
-        pushCmd("ADD B B");
+        pushCmd("COPY E B");
+        pushCmd("SUB E C");
+        pushCmd("JZERO E " + to_string(number + 6));
         pushCmd("ADD C C");
-        pushCmd("JUMP " + to_string(number + 1));
+        pushCmd("ADD D D");
+        pushCmd("JUMP " + to_string(number));
+
+        long long int tutaj = asmStack.size();
+        pushCmd("COPY E C");
+        pushCmd("SUB E B");
+        long long int number2 = asmStack.size();
+        pushCmd("JZERO E " + to_string(number2 + 2));
+        pushCmd("JUMP " + to_string(number2 + 4));
+        pushCmd("SUB B C");
+        pushCmd("ADD H D");
+        pushCmd("HALF C");
+        pushCmd("HALF D");
+        pushCmd("JZERO D " + to_string(number2 + 8));
+        pushCmd("JUMP " + to_string(tutaj));
+
+        addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+        jumpStack.pop_back();
     }
 }
 
@@ -2714,17 +2757,37 @@ void mod(Idef a, Idef b) {
           return;
         }
 
-        pushCmd("COPY H B");
-        pushCmd("INC B");
+        pushCmd("SUB H H");
+        setReg("1",4);
+        Jump j;
+        createJump(&j, asmStack.size(), depth);
+        jumpStack.push_back(j);
+        pushCmd("JZERO C");
+
         long long int number = asmStack.size();
-        pushCmd("JZERO C " + to_string(number + 6));
-        pushCmd("JZERO B " + to_string(number + 6));
+        pushCmd("COPY E B");
+        pushCmd("SUB E C");
+        pushCmd("JZERO E " + to_string(number + 6));
+        pushCmd("ADD C C");
+        pushCmd("ADD D D");
+        pushCmd("JUMP " + to_string(number));
+
+        long long int tutaj = asmStack.size();
+        pushCmd("COPY E C");
+        pushCmd("SUB E B");
+        long long int number2 = asmStack.size();
+        pushCmd("JZERO E " + to_string(number2 + 2));
+        pushCmd("JUMP " + to_string(number2 + 4));
         pushCmd("SUB B C");
-        pushCmd("JZERO B " + to_string(number + 7));
+        pushCmd("ADD H D");
+        pushCmd("HALF C");
+        pushCmd("HALF D");
+        pushCmd("JZERO D " + to_string(number2 + 8));
+        pushCmd("JUMP " + to_string(tutaj));
+
+        addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+        jumpStack.pop_back();
         pushCmd("COPY H B");
-        pushCmd("JUMP " + to_string(number + 2));
-        setReg("0", 8);
-        pushCmd("DEC H");
     }
 }
 
