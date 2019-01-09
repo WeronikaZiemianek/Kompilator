@@ -2250,18 +2250,19 @@ void div(Idef a, Idef b) {
         setReg(to_string(b.memory),1);
         memToReg(3);
 
-        // num 1 w rejestrze B
-        // num 2 w rejestrze H
-        setReg("0", 8);
+        setReg("0",8);
         long long int number = asmStack.size();
-        pushCmd("JZERO C " + to_string(number + 8));
-        pushCmd("JZERO B " + to_string(number + 8));
-        pushCmd("INC B");
-        pushCmd("SUB B C");
-        pushCmd("JZERO B " + to_string(number + 8));
+        pushCmd("JZERO C " + to_string(number + 11));
+        pushCmd("COPY D B");
+        pushCmd("INC D");
+        pushCmd("SUB D C");
+        pushCmd("JZERO D " + to_string(number + 11));
+        pushCmd("DEC D");
         pushCmd("INC H");
-        pushCmd("JUMP " + to_string(number+3));
-        setReg("0", 8);
+        pushCmd("COPY B D");
+        pushCmd("ADD B B");
+        pushCmd("ADD C C");
+        pushCmd("JUMP " + to_string(number + 1));
     }
 }
 
