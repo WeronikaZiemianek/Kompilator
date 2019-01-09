@@ -1804,10 +1804,15 @@ void mul(Idef a, Idef b) {
           return;
         }
 
-        pushCmd("COPY H B");
-        for(long long int i=0; i < stoll(a.name)-1;i++)
-            pushCmd("ADD H B");
+        long long int va = stoll(a.name);
 
+        setReg("0",8);
+        while (va>0) {
+          if(va%2==1)
+            pushCmd("ADD H B");
+          pushCmd("ADD B B");
+          va/=2;
+        }
         removeIdef(a.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
@@ -1819,10 +1824,15 @@ void mul(Idef a, Idef b) {
           return;
         }
 
-        pushCmd("COPY H B");
-        for(long long int i=0; i < stoll(b.name)-1;i++)
-            pushCmd("ADD H B");
+        long long int va = stoll(b.name);
 
+        setReg("0",8);
+        while (va>0) {
+          if(va%2==1)
+            pushCmd("ADD H B");
+          pushCmd("ADD B B");
+          va/=2;
+        }
         removeIdef(b.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
@@ -1855,10 +1865,15 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             return;
           }
 
-          pushCmd("COPY H B");
+          long long int va = stoll(a.name);
 
-          for(long long int i=0; i < stoll(a.name)-1;i++)
+          setReg("0",8);
+          while (va>0) {
+            if(va%2==1)
               pushCmd("ADD H B");
+            pushCmd("ADD B B");
+            va/=2;
+          }
 
           removeIdef(a.name);
       }
@@ -1881,10 +1896,15 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             return;
           }
 
-          pushCmd("COPY H B");
+          long long int va = stoll(a.name);
 
-          for(long long int i=0; i < stoll(a.name)-1;i++)
+          setReg("0",8);
+          while (va>0) {
+            if(va%2==1)
               pushCmd("ADD H B");
+            pushCmd("ADD B B");
+            va/=2;
+          }
           removeIdef(a.name);
       }
   }
@@ -1899,10 +1919,15 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
               return;
             }
 
-            pushCmd("COPY H B");
+            long long int va = stoll(b.name);
 
-            for(long long int i=0; i < stoll(b.name)-1;i++)
+            setReg("0",8);
+            while (va>0) {
+              if(va%2==1)
                 pushCmd("ADD H B");
+              pushCmd("ADD B B");
+              va/=2;
+            }
 
             removeIdef(b.name);
         }
@@ -1923,10 +1948,15 @@ void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
               return;
             }
 
-            pushCmd("COPY H B");
+            long long int va = stoll(b.name);
 
-            for(long long int i=0; i < stoll(b.name)-1;i++)
+            setReg("0",8);
+            while (va>0) {
+              if(va%2==1)
                 pushCmd("ADD H B");
+              pushCmd("ADD B B");
+              va/=2;
+            }
 
             removeIdef(b.name);
         }
