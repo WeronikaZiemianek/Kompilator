@@ -13,7 +13,7 @@
   #include <algorithm>
 
   using namespace std;
-
+  extern FILE *yyin;
   int yylex();
   extern int yylineno;
   int yyerror(const string str);
@@ -31,7 +31,7 @@
   } Idef;
 
   typedef struct {
-      long long int placeInStack;
+      long long int line;
       long long int depth;
   } Jump;
 
@@ -39,7 +39,6 @@
   vector<string> asmStack;
   vector<Jump> jumpStack;
   vector<Idef> forStack;
-  vector<Idef> conditionStack;
 
   int flagAssign;
   int flagWrite;
@@ -74,8 +73,8 @@
 
   void add(Idef a, Idef b);
   void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex);
-  void sub(Idef a, Idef b, int isINC, int isRemoval) ;
-  void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) ;
+  void sub(Idef a, Idef b, int addJumpLine, int isToRemove) ;
+  void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int addJumpLine, int isToRemove) ;
   void mul(Idef a, Idef b);
   void mulTab(Idef a, Idef b, Idef aIndex, Idef bIndex);
   void div(Idef a, Idef b);
@@ -104,7 +103,6 @@
 program:
     DECLARE declarations IN commands END {
         asmStack.push_back("HALT");
-        printAsmStack();
     }
 ;
 
@@ -137,7 +135,7 @@ declarations PIDENTIFIER SEMICOLON {
       exit(1);
   }
 
-  else if ( (atoll($4) == atoll($6)) || (atoll($6)==0) ) {
+  else if (atoll($6)==0) {
       cout << "Błąd linia: " << yylineno << " - Deklaracja zmiennej tablicowej " << $<str>2 << " o dlugosci zero" << "\n";
       exit(1);
   }
@@ -162,14 +160,12 @@ declarations PIDENTIFIER SEMICOLON {
 commands:
 commands command
 | command
-|
 ;
 
 command:
 identifier ASSIGN {
   flagAssign = 0;
-}
-expression SEMICOLON {
+} expression SEMICOLON {
   if(assignArg.type == "ARRAY") {
     Idef idef = idefStack.at(assignArgTabIndex);
     if(idef.type == "NUMBER") {
@@ -200,11 +196,8 @@ expression SEMICOLON {
   idefStack.at(assignArg.name).isInitialized = 1;
   flagAssign = 1;
 }
-| IF {flagAssign = 0;
-        depth++;
-    } condition {
-        flagAssign = 1;
-    } THEN commands ifbody
+| IF {  flagAssign = 0; depth++; } condition {
+        flagAssign = 1;} THEN commands ifBody
 | DO {
       depth++;
       Jump j;
@@ -217,17 +210,17 @@ expression SEMICOLON {
           long long int jumpCount = jumpStack.size()-1;
 
           if(jumpCount > 1 && jumpStack.at(jumpCount).depth == jumpStack.at(jumpCount-1).depth) {
-              stack = jumpStack.at(jumpCount-2).placeInStack;
+              stack = jumpStack.at(jumpCount-2).line;
               pushCmd("JUMP " + to_string(stack));
 
-              addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
-              addInt(jumpStack.at(jumpCount-1).placeInStack, asmStack.size());
+              addInt(jumpStack.at(jumpCount).line, asmStack.size());
+              addInt(jumpStack.at(jumpCount-1).line, asmStack.size());
               jumpStack.pop_back();
           }
           else {
-              stack = jumpStack.at(jumpCount-1).placeInStack;
+              stack = jumpStack.at(jumpCount-1).line;
               pushCmd("JUMP " + to_string(stack));
-              addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
+              addInt(jumpStack.at(jumpCount).line, asmStack.size());
           }
           jumpStack.pop_back();
           jumpStack.pop_back();
@@ -247,17 +240,17 @@ expression SEMICOLON {
         long long int jumpCount = jumpStack.size()-1;
 
         if(jumpCount > 1 && jumpStack.at(jumpCount).depth == jumpStack.at(jumpCount-1).depth) {
-            stack = jumpStack.at(jumpCount-2).placeInStack;
+            stack = jumpStack.at(jumpCount-2).line;
             pushCmd("JUMP " + to_string(stack));
 
-            addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
-            addInt(jumpStack.at(jumpCount-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpCount).line, asmStack.size());
+            addInt(jumpStack.at(jumpCount-1).line, asmStack.size());
             jumpStack.pop_back();
         }
         else {
-            stack = jumpStack.at(jumpCount-1).placeInStack;
+            stack = jumpStack.at(jumpCount-1).line;
             pushCmd("JUMP " + to_string(stack));
-            addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpCount).line, asmStack.size());
         }
         jumpStack.pop_back();
         jumpStack.pop_back();
@@ -277,8 +270,7 @@ expression SEMICOLON {
         }
         flagAssign = 0;
         assignArg = idefStack.at($2);
-        depth++;
-    } FROM value forbody
+        depth++; } FROM value forBody
 | READ identifier {
         flagAssign = 1;
     }
@@ -358,15 +350,15 @@ expression SEMICOLON {
     }
 ;
 
-ifbody:
+ifBody:
     ELSE {
         long long int jumpCount = jumpStack.size()-1;
         Jump jump = jumpStack.at(jumpCount);
-        addInt(jump.placeInStack, asmStack.size()+1);
+        addInt(jump.line, asmStack.size()+1);
 
         if((jumpCount-1) >= 0 && jumpStack.at(jumpCount).depth == jumpStack.at(jumpCount-1).depth)
         {
-          addInt(jumpStack.at(jumpCount).placeInStack - 1, asmStack.size()+1);
+          addInt(jumpStack.at(jumpCount).line - 1, asmStack.size()+1);
           jumpStack.pop_back();
         }
         jumpStack.pop_back();
@@ -378,7 +370,7 @@ ifbody:
 
         flagAssign = 1;
     } commands ENDIF {
-        addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+        addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
 
         jumpStack.pop_back();
 
@@ -387,11 +379,11 @@ ifbody:
     }
 |   ENDIF {
         long long int jumpCount = jumpStack.size()-1;
-        addInt(jumpStack.at(jumpCount).placeInStack, asmStack.size());
+        addInt(jumpStack.at(jumpCount).line, asmStack.size());
 
         if((jumpCount-1) >= 0 && jumpStack.at(jumpCount).depth == jumpStack.at(jumpCount-1).depth)
         {
-          addInt(jumpStack.at(jumpCount).placeInStack - 1, asmStack.size());
+          addInt(jumpStack.at(jumpCount).line - 1, asmStack.size());
           jumpStack.pop_back();
         }
         jumpStack.pop_back();
@@ -401,8 +393,8 @@ ifbody:
     }
 ;
 
-forbody:
-    DOWNTO value DO {
+forBody:
+DOWNTO value DO {
 
       Idef a = idefStack.at(expressionArgs[0]);
       Idef b = idefStack.at(expressionArgs[1]);
@@ -480,7 +472,7 @@ forbody:
       regToMem(7);
 
       flagAssign = 1;
-    } commands ENDFOR {
+} commands ENDFOR {
       Idef iterator = forStack.at(forStack.size()-1);
       setReg(to_string(iterator.memory),1);
       memToReg(2);
@@ -488,10 +480,10 @@ forbody:
       regToMem(2);
 
       long long int jumpCount = jumpStack.size()-2;
-      long long int stack = jumpStack.at(jumpCount).placeInStack;
+      long long int stack = jumpStack.at(jumpCount).line;
 
       long long int jumpCount2 = jumpStack.size()-1;
-      long long int stack2 = jumpStack.at(jumpCount2).placeInStack;
+      long long int stack2 = jumpStack.at(jumpCount2).line;
 
       pushCmd("JUMP " + to_string(stack));
       addInt(stack2, asmStack.size());
@@ -506,7 +498,7 @@ forbody:
       depth--;
       flagAssign = 1;
     }
-    |   TO value DO {
+|   TO value DO {
 
             Idef a = idefStack.at(expressionArgs[0]);
             Idef b = idefStack.at(expressionArgs[1]);
@@ -585,7 +577,7 @@ forbody:
 
             flagAssign = 1;
 
-        } commands ENDFOR {
+} commands ENDFOR {
             Idef iterator = forStack.at(forStack.size()-1);
             setReg(to_string(iterator.memory),1);
             memToReg(2);
@@ -593,10 +585,10 @@ forbody:
             regToMem(2);
 
             long long int jumpCount = jumpStack.size()-2;
-            long long int stack = jumpStack.at(jumpCount).placeInStack;
+            long long int stack = jumpStack.at(jumpCount).line;
 
             long long int jumpCount2 = jumpStack.size()-1;
-            long long int stack2 = jumpStack.at(jumpCount2).placeInStack;
+            long long int stack2 = jumpStack.at(jumpCount2).line;
 
             pushCmd("JUMP " + to_string(stack));
             addInt(stack2, asmStack.size());
@@ -611,7 +603,7 @@ forbody:
             depth--;
             flagAssign = 1;
         }
-    ;
+;
 
 expression:
 value {
@@ -847,7 +839,7 @@ value EQUAL value {
       else
           subTab(a, b, aI, bI, 0, 1);
 
-      addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size()+1);
+      addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size()+1);
       jumpStack.pop_back();
 
       Jump jj;
@@ -1150,7 +1142,7 @@ void removeIdef(string key) {
 }
 
 void createJump(Jump *j, long long int stack, long long int depth) {
-    j->placeInStack = stack;
+    j->line = stack;
     j->depth = depth;
 }
 
@@ -1199,32 +1191,39 @@ string decToBin(long long int n) {
 
 void printAsm(string outFileName) {
   ofstream out_code(outFileName);
-	for(long long int i = 0; i < asmStack.size(); i++)
+	for(long long int i = 0; i < (long long int) asmStack.size(); i++)
         out_code << asmStack.at(i) << endl;
 }
 
 void printAsmStack(){
-	for(long long int i = 0; i < asmStack.size(); i++)
+	for(long long int i = 0; i < (long long int) asmStack.size(); i++)
         cout << asmStack.at(i) << endl;
 }
 
-int main(int argv, char* argc[]){
+int main(int argc, char* argv[]){
   flagAssign = 1;
   flagWrite = 0;
   memCounter = 1;
   depth = 0;
 
-  yyparse();
-
-  string file = "";
-    if(argv < 2)
-        printAsmStack();
-    else {
-        file = argc[1];
-        printAsm(file);
+  if(argc<3){
+    cout << "Niepoprawna liczba argumentów wywołania. Plik wejściowy lub wyjściowy nie zosta podany. \n";
+    exit(1);
+  }
+  else{
+    yyin=fopen(argv[1],"r");
+    if(!yyin){
+      cout << "Błąd otwarcia pliku.";
+      exit(1);
     }
+    yyparse();
+    //printAsmStack(); // <- cmd
+    printAsm(argv[2]);
+  }
 	return 0;
 }
+
+
 
 int yyerror(string str){
     cout << "Błąd: linia " << yylineno << " "<< str << "\n";
@@ -1485,11 +1484,11 @@ void addTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
     }
 }
 
-void sub(Idef a, Idef b, int isINC, int isRemoval)  {
+void sub(Idef a, Idef b, int addJumpLine, int isToRemove)  {
     if(a.type == "NUMBER" && b.type == "NUMBER") {
-        long long int val = max(stoll(a.name) + isINC - stoll(b.name),(long long int) 0);
+        long long int val = max(stoll(a.name) + addJumpLine - stoll(b.name),(long long int) 0);
         setReg(to_string(val),8);
-        if(isRemoval) {
+        if(isToRemove) {
           removeIdef(a.name);
           removeIdef(b.name);
         }
@@ -1497,9 +1496,9 @@ void sub(Idef a, Idef b, int isINC, int isRemoval)  {
     else if(a.type == "NUMBER" && b.type == "IDENTIFIER") {
         setReg(to_string(b.memory),1);
         memToReg(2);
-        setReg(to_string(stoll(a.name) + isINC), 8);
+        setReg(to_string(stoll(a.name) + addJumpLine), 8);
         pushCmd("SUB H B");
-        if(isRemoval)
+        if(isToRemove)
           removeIdef(a.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "NUMBER") {
@@ -1507,22 +1506,22 @@ void sub(Idef a, Idef b, int isINC, int isRemoval)  {
       if(stoll(b.name) < 28){
         setReg(to_string(a.memory),1);
         memToReg(8);
-        if(isINC)
+        if(addJumpLine)
             pushCmd("INC H");
         for(int i=0; i<stoll(b.name);i++ )
           pushCmd("DEC H");
-        if(isRemoval)
+        if(isToRemove)
           removeIdef(b.name);
         return;
       }
 
         setReg(to_string(a.memory),1);
         memToReg(8);
-        if(isINC)
+        if(addJumpLine)
             pushCmd("INC H");
         setReg(b.name, 2);
         pushCmd("SUB H B");
-        if(isRemoval)
+        if(isToRemove)
           removeIdef(b.name);
     }
     else if(a.type == "IDENTIFIER" && b.type == "IDENTIFIER") {
@@ -1534,7 +1533,7 @@ void sub(Idef a, Idef b, int isINC, int isRemoval)  {
 
         setReg(to_string(a.memory),1);
         memToReg(8);
-        if(isINC)
+        if(addJumpLine)
             pushCmd("INC H");
         setReg(to_string(b.memory),1);
         memToReg(2);
@@ -1542,15 +1541,15 @@ void sub(Idef a, Idef b, int isINC, int isRemoval)  {
     }
 }
 
-void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) {
+void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int addJumpLine, int isToRemove) {
   if(a.type == "NUMBER" && b.type == "ARRAY") {
       if(bIndex.type == "NUMBER") {
           long long int addr = b.memory + stoll(bIndex.name) - b.move + 1;
           setReg(to_string(addr),1);
           memToReg(2);
-          setReg(to_string(stoll(a.name) + isINC), 8);
+          setReg(to_string(stoll(a.name) + addJumpLine), 8);
           pushCmd("SUB H B");
-          if(isRemoval) {
+          if(isToRemove) {
               removeIdef(a.name);
               removeIdef(bIndex.name);
           }
@@ -1567,9 +1566,9 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
           }
           pushCmd("COPY A B");
           memToReg(2);
-          setReg(to_string(stoll(a.name) + isINC), 8);
+          setReg(to_string(stoll(a.name) + addJumpLine), 8);
           pushCmd("SUB H B");
-          if(isRemoval)
+          if(isToRemove)
             removeIdef(a.name);
       }
   }
@@ -1580,11 +1579,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addr),1);
             memToReg(8);
-            if(isINC)
+            if(addJumpLine)
                 pushCmd("INC H");
             for(int i=0; i<stoll(b.name);i++ )
               pushCmd("DEC H");
-            if(isRemoval)
+            if(isToRemove)
               removeIdef(b.name);
             return;
           }
@@ -1592,11 +1591,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             long long int addr = a.memory + stoll(aIndex.name) - a.move + 1;
             setReg(to_string(addr),1);
             memToReg(8);
-            if(isINC)
+            if(addJumpLine)
                 pushCmd("INC H");
             setReg(b.name, 2);
             pushCmd("SUB H B");
-            if(isRemoval) {
+            if(isToRemove) {
                 removeIdef(b.name);
                 removeIdef(aIndex.name);
             }
@@ -1615,11 +1614,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             }
             pushCmd("COPY A B");
             memToReg(8);
-            if(isINC)
+            if(addJumpLine)
                 pushCmd("INC H");
             for(int i=0; i<stoll(b.name);i++ )
               pushCmd("DEC H");
-            if(isRemoval)
+            if(isToRemove)
               removeIdef(b.name);
             return;
           }
@@ -1635,11 +1634,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             }
             pushCmd("COPY A B");
             memToReg(8);
-            if(isINC)
+            if(addJumpLine)
                 pushCmd("INC H");
             setReg(b.name, 2);
             pushCmd("SUB H B");
-            if(isRemoval)
+            if(isToRemove)
               removeIdef(b.name);
         }
     }
@@ -1650,10 +1649,10 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             memToReg(2);
             setReg(to_string(a.memory),1);
             memToReg(8);
-            if(isINC)
+            if(addJumpLine)
                 pushCmd("INC H");
             pushCmd("SUB H B");
-            if(isRemoval)
+            if(isToRemove)
                 removeIdef(bIndex.name);
         }
         else if(bIndex.type == "IDENTIFIER") {
@@ -1670,7 +1669,7 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             memToReg(2);
             setReg(to_string(a.memory),1);
             memToReg(8);
-            if(isINC)
+            if(addJumpLine)
                 pushCmd("INC H");
             pushCmd("SUB H B");
         }
@@ -1681,13 +1680,13 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             setReg(to_string(addr),1);
             memToReg(8);
 
-            if(isINC)
+            if(addJumpLine)
                 pushCmd("INC H");
 
             setReg(to_string(b.memory),1);
             memToReg(2);
             pushCmd("SUB H B");
-            if(isRemoval)
+            if(isToRemove)
                 removeIdef(aIndex.name);
         }
         else if(aIndex.type == "IDENTIFIER") {
@@ -1704,7 +1703,7 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             pushCmd("COPY A B");
             memToReg(8);
 
-            if(isINC)
+            if(addJumpLine)
                 pushCmd("INC H");
 
             setReg(to_string(b.memory),1);
@@ -1718,12 +1717,12 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             long long int addrB = b.memory + stoll(bIndex.name) - b.move + 1;
             setReg(to_string(addrA),1);
             memToReg(8);
-            if(isINC)
+            if(addJumpLine)
                 pushCmd("INC H");
             setReg(to_string(addrB),1);
             memToReg(2);
             pushCmd("SUB H B");
-            if(isRemoval) {
+            if(isToRemove) {
                 removeIdef(aIndex.name);
                 removeIdef(bIndex.name);
             }
@@ -1733,7 +1732,7 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             setReg(to_string(addrA),1);
             memToReg(8);
 
-            if(isINC)
+            if(addJumpLine)
                 pushCmd("INC H");
 
             setReg(to_string(bIndex.memory),1);
@@ -1748,7 +1747,7 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
             pushCmd("COPY A B");
             memToReg(2);
             pushCmd("SUB H B");
-            if(isRemoval)
+            if(isToRemove)
                 removeIdef(aIndex.name);
         }
         else if(aIndex.type == "IDENTIFIER" && bIndex.type == "NUMBER") {
@@ -1767,11 +1766,11 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
           pushCmd("COPY A H");
           memToReg(8);
 
-          if(isINC)
+          if(addJumpLine)
               pushCmd("INC H");
 
           pushCmd("SUB H B");
-          if(isRemoval)
+          if(isToRemove)
               removeIdef(bIndex.name);
         }
         else if(aIndex.type == "IDENTIFIER" && bIndex.type == "IDENTIFIER") {
@@ -1798,7 +1797,7 @@ void subTab(Idef a, Idef b, Idef aIndex, Idef bIndex, int isINC, int isRemoval) 
           }
           pushCmd("COPY A H");
           memToReg(8);
-          if(isINC)
+          if(addJumpLine)
               pushCmd("INC H");
           pushCmd("SUB H B");
         }
@@ -2248,7 +2247,7 @@ void div(Idef a, Idef b) {
         pushCmd("JZERO D " + to_string(number2 + 8));
         pushCmd("JUMP " + to_string(tutaj));
 
-        addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+        addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
         jumpStack.pop_back();
         pushCmd("COPY H B");
         removeIdef(a.name);
@@ -2299,7 +2298,7 @@ void div(Idef a, Idef b) {
         pushCmd("JZERO D " + to_string(number2 + 8));
         pushCmd("JUMP " + to_string(tutaj));
 
-        addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+        addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
         jumpStack.pop_back();
         removeIdef(b.name);
     }
@@ -2343,7 +2342,7 @@ void div(Idef a, Idef b) {
         pushCmd("JZERO D " + to_string(number2 + 8));
         pushCmd("JUMP " + to_string(tutaj));
 
-        addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+        addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
         jumpStack.pop_back();
     }
 }
@@ -2400,7 +2399,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           pushCmd("JZERO D " + to_string(number2 + 8));
           pushCmd("JUMP " + to_string(tutaj));
 
-          addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+          addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
           jumpStack.pop_back();
           removeIdef(a.name);
       }
@@ -2470,7 +2469,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           pushCmd("JZERO D " + to_string(number2 + 8));
           pushCmd("JUMP " + to_string(tutaj));
 
-          addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+          addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
           jumpStack.pop_back();
           removeIdef(a.name);
       }
@@ -2525,7 +2524,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JZERO D " + to_string(number2 + 8));
             pushCmd("JUMP " + to_string(tutaj));
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
             removeIdef(b.name);
         }
@@ -2594,7 +2593,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JZERO D " + to_string(number2 + 8));
             pushCmd("JUMP " + to_string(tutaj));
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
             removeIdef(b.name);
         }
@@ -2635,7 +2634,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JZERO D " + to_string(number2 + 8));
             pushCmd("JUMP " + to_string(tutaj));
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
         }
         else if(bIndex.type == "IDENTIFIER") {
@@ -2681,7 +2680,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JZERO D " + to_string(number2 + 8));
             pushCmd("JUMP " + to_string(tutaj));
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
         }
     }
@@ -2720,7 +2719,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JZERO D " + to_string(number2 + 8));
             pushCmd("JUMP " + to_string(tutaj));
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
         }
         else if(aIndex.type == "IDENTIFIER") {
@@ -2768,7 +2767,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JZERO D " + to_string(number2 + 8));
             pushCmd("JUMP " + to_string(tutaj));
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
         }
     }
@@ -2808,7 +2807,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JZERO D " + to_string(number2 + 8));
             pushCmd("JUMP " + to_string(tutaj));
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
             removeIdef(aIndex.name);
             removeIdef(bIndex.name);
@@ -2857,7 +2856,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JZERO D " + to_string(number2 + 8));
             pushCmd("JUMP " + to_string(tutaj));
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
             removeIdef(aIndex.name);
         }
@@ -2905,7 +2904,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           pushCmd("JZERO D " + to_string(number2 + 8));
           pushCmd("JUMP " + to_string(tutaj));
 
-          addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+          addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
           jumpStack.pop_back();
           removeIdef(aIndex.name);
           removeIdef(bIndex.name);
@@ -2963,7 +2962,7 @@ void divTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           pushCmd("JZERO D " + to_string(number2 + 8));
           pushCmd("JUMP " + to_string(tutaj));
 
-          addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+          addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
           jumpStack.pop_back();
         }
     }
@@ -3022,7 +3021,7 @@ void mod(Idef a, Idef b) {
         pushCmd("JUMP " + to_string(tutaj));
         pushCmd("COPY H B");
 
-        addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+        addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
         jumpStack.pop_back();
 
         removeIdef(a.name);
@@ -3076,7 +3075,7 @@ void mod(Idef a, Idef b) {
         pushCmd("JUMP " + to_string(tutaj));
         pushCmd("COPY H B");
 
-        addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+        addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
         jumpStack.pop_back();
         removeIdef(b.name);
     }
@@ -3120,7 +3119,7 @@ void mod(Idef a, Idef b) {
         pushCmd("JUMP " + to_string(tutaj));
 
         pushCmd("COPY H B");
-        addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+        addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
         jumpStack.pop_back();
     }
 }
@@ -3169,7 +3168,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           pushCmd("JUMP " + to_string(tutaj));
           pushCmd("COPY H B");
 
-          addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+          addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
           jumpStack.pop_back();
           removeIdef(a.name);
       }
@@ -3223,7 +3222,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           pushCmd("JUMP " + to_string(tutaj));
           pushCmd("COPY H B");
 
-          addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+          addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
           jumpStack.pop_back();
           removeIdef(a.name);
       }
@@ -3282,7 +3281,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JUMP " + to_string(tutaj));
             pushCmd("COPY H B");
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
             removeIdef(b.name);
         }
@@ -3355,7 +3354,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JUMP " + to_string(tutaj));
             pushCmd("COPY H B");
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
             removeIdef(b.name);
         }
@@ -3397,7 +3396,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JUMP " + to_string(tutaj));
             pushCmd("COPY H B");
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
         }
         else if(bIndex.type == "IDENTIFIER") {
@@ -3444,7 +3443,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JUMP " + to_string(tutaj));
             pushCmd("COPY H B");
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
         }
     }
@@ -3483,7 +3482,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JZERO D " + to_string(number2 + 8));
             pushCmd("JUMP " + to_string(tutaj));
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
             pushCmd("COPY H B");
         }
@@ -3533,7 +3532,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JUMP " + to_string(tutaj));
             pushCmd("COPY H B");
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
         }
     }
@@ -3573,7 +3572,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JZERO D " + to_string(number2 + 8));
             pushCmd("JUMP " + to_string(tutaj));
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
             pushCmd("COPY H B");
             removeIdef(aIndex.name);
@@ -3623,7 +3622,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
             pushCmd("JUMP " + to_string(tutaj));
             pushCmd("COPY H B");
 
-            addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+            addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
             jumpStack.pop_back();
             removeIdef(aIndex.name);
         }
@@ -3671,7 +3670,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
           pushCmd("JUMP " + to_string(tutaj));
           pushCmd("COPY H B");
 
-          addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+          addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
           jumpStack.pop_back();
           removeIdef(bIndex.name);
         }
@@ -3730,7 +3729,7 @@ void modTab(Idef a, Idef b, Idef aIndex, Idef bIndex) {
 
           pushCmd("COPY H B");
 
-          addInt(jumpStack.at(jumpStack.size()-1).placeInStack, asmStack.size());
+          addInt(jumpStack.at(jumpStack.size()-1).line, asmStack.size());
           jumpStack.pop_back();
         }
     }
